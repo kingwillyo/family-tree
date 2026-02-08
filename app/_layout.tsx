@@ -6,7 +6,7 @@ import '../global.css';
 export default function Layout() {
   return (
     <>
-      <Stack />
+      <Stack screenOptions={{headerShown: false}}/>
       <StatusBar style="auto" />
     </>
   );
