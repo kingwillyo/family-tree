@@ -1,23 +1,32 @@
-import { NativeTabs } from "expo-router/unstable-native-tabs";
+import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native-tabs';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function TabsLayout() {
   return (
-    <NativeTabs tintColor="#059669">
+    <NativeTabs>
       <NativeTabs.Trigger name="tree">
-        <NativeTabs.Trigger.Label>Tree</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "tree", selected: "tree.fill" }}
-          md="nature"
+        <Label>Tree</Label>
+        <Icon
+          src={<VectorIcon family={MaterialCommunityIcons} name="tree" />}
+          selectedColor="#059669"
         />
       </NativeTabs.Trigger>
+
+      <NativeTabs.Trigger name="memories">
+        <Label>Memories</Label>
+        <Icon
+          src={<VectorIcon family={MaterialCommunityIcons} name="image-multiple" />}
+          selectedColor="#059669"
+        />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="profile">
-        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
-        <NativeTabs.Trigger.Icon
-          sf={{ default: "person", selected: "person.fill" }}
-          md="person"
+        <Label>Profile</Label>
+        <Icon
+          src={<VectorIcon family={MaterialCommunityIcons} name="account" />}
+          selectedColor="#059669"
         />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
 }
-

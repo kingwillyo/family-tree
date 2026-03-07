@@ -1,34 +1,38 @@
-import "../global.css";
-import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
-import { useAuthStore } from "../lib/auth-store";
+import '../global.css';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { useEffect } from 'react';
+import { AuthProvider, useAuth } from '../lib/auth-context';
 
-export default function RootLayout() {
-  const { session, loading, initialize } = useAuthStore();
+function LayoutContent() {
+  const { session, appLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
-    initialize();
-  }, []);
-
-  useEffect(() => {
-    if (loading) return;
-    const inAuthGroup = segments[0] === "(auth)";
+    if (appLoading) return;
+    const inAuthGroup = segments[0] === '(auth)';
     if (!session && !inAuthGroup) {
-      router.replace("/(auth)/login");
+      router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
-      router.replace("/(tabs)/tree");
+      router.replace('/(tabs)/tree');
     }
-  }, [session, loading, segments, router]);
+  }, [session, appLoading, segments, router]);
 
-  if (loading) return null;
-
+  if (appLoading) return null;
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="index" />
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
+      <Stack.Screen name="member" />
+      <Stack.Screen name="invite" options={{ presentation: 'modal' }} />
     </Stack>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <AuthProvider>
+      <LayoutContent />
+    </AuthProvider>
   );
 }

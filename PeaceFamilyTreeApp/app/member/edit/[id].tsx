@@ -1,0 +1,186 @@
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { supabase } from '../../../lib/supabase';
+import { Input } from '../../../components/Input';
+
+export default function EditMemberScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  const [fullName, setFullName] = useState('');
+  const [dob, setDob] = useState('');
+  const [dod, setDod] = useState('');
+  const [bio, setBio] = useState('');
+  const [isLiving, setIsLiving] = useState(true);
+  const [visibility, setVisibility] = useState<'family' | 'private'>('family');
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!id) return;
+    const fetch = async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, date_of_birth, date_of_death, bio, is_living, visibility')
+        .eq('id', id)
+        .single();
+
+      if (data) {
+        setFullName(data.full_name ?? '');
+        setDob(data.date_of_birth ?? '');
+        setDod(data.date_of_death ?? '');
+        setBio(data.bio ?? '');
+        setIsLiving(data.is_living ?? true);
+        setVisibility(data.visibility === 'private' ? 'private' : 'family');
+      }
+      setLoading(false);
+    };
+    fetch();
+  }, [id]);
+
+  const handleSave = async () => {
+    setError('');
+    if (!fullName.trim()) {
+      setError('Full name is required');
+      return;
+    }
+    setSaving(true);
+    try {
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: fullName.trim(),
+          date_of_birth: dob || null,
+          date_of_death: dod || null,
+          bio: bio.trim() || null,
+          is_living: isLiving,
+          visibility,
+        })
+        .eq('id', id);
+
+      if (updateError) {
+        setError(updateError.message);
+      } else {
+        router.back();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-gray-50">
+        <ActivityIndicator size="large" color="#059669" />
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-4 pb-3 pt-2">
+        <TouchableOpacity onPress={() => router.back()} className="p-2">
+          <Text className="text-base font-medium text-emerald-600">← Cancel</Text>
+        </TouchableOpacity>
+        <Text className="text-base font-bold text-gray-900">Edit Member</Text>
+        <TouchableOpacity
+          onPress={handleSave}
+          disabled={saving}
+          className="rounded-full bg-emerald-600 px-4 py-2">
+          {saving ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text className="text-sm font-semibold text-white">Save</Text>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1">
+        <ScrollView
+          className="flex-1"
+          contentContainerClassName="px-6 pb-12"
+          keyboardShouldPersistTaps="handled">
+          <Input
+            label="Full Name *"
+            placeholder="e.g. Grace Adeyemi"
+            value={fullName}
+            onChangeText={setFullName}
+            error={error && !fullName.trim() ? error : ''}
+          />
+
+          <Input
+            label="Date of Birth"
+            placeholder="YYYY-MM-DD"
+            value={dob}
+            onChangeText={setDob}
+            keyboardType="numbers-and-punctuation"
+          />
+
+          <Input
+            label="Date of Death"
+            placeholder="YYYY-MM-DD"
+            value={dod}
+            onChangeText={(v) => {
+              setDod(v);
+              if (v) setIsLiving(false);
+            }}
+            keyboardType="numbers-and-punctuation"
+          />
+
+          <Input
+            label="Life Summary / Bio"
+            placeholder="A short biography or memorable story…"
+            value={bio}
+            onChangeText={setBio}
+            multiline
+          />
+
+          <View className="mt-2 rounded-2xl border border-gray-100 bg-white p-4">
+            <View className="flex-row items-center justify-between py-2">
+              <View>
+                <Text className="font-semibold text-gray-900">Living</Text>
+                <Text className="text-xs text-gray-400">Is this person still alive?</Text>
+              </View>
+              <Switch
+                value={isLiving}
+                onValueChange={setIsLiving}
+                trackColor={{ true: '#059669' }}
+              />
+            </View>
+            <View className="my-1 border-t border-gray-100" />
+            <View className="flex-row items-center justify-between py-2">
+              <View>
+                <Text className="font-semibold text-gray-900">Private</Text>
+                <Text className="text-xs text-gray-400">Hidden from viewers</Text>
+              </View>
+              <Switch
+                value={visibility === 'private'}
+                onValueChange={(v) => setVisibility(v ? 'private' : 'family')}
+                trackColor={{ true: '#d97706' }}
+              />
+            </View>
+          </View>
+
+          {error && fullName.trim() ? (
+            <Text className="mt-3 text-sm text-red-500">{error}</Text>
+          ) : null}
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
