@@ -20,6 +20,14 @@ export default function TabsLayout() {
         />
       </NativeTabs.Trigger>
 
+      <NativeTabs.Trigger name="collab">
+        <Label>Collab</Label>
+        <Icon
+          src={<VectorIcon family={MaterialCommunityIcons} name="account-group" />}
+          selectedColor="#059669"
+        />
+      </NativeTabs.Trigger>
+
       <NativeTabs.Trigger name="profile">
         <Label>Profile</Label>
         <Icon
