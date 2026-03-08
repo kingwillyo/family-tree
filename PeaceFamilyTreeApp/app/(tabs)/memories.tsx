@@ -94,7 +94,7 @@ export default function MemoriesScreen() {
               <TouchableOpacity
                 key={filter}
                 onPress={() => setActiveFilter(filter)}
-                className={`flex-1 items-center justify-center rounded-full border py-[10px] ${isActive ? 'border-[#84cc16] bg-[#84cc16]' : 'border-gray-200 bg-white'}`}>
+                className={`flex-1 items-center justify-center rounded-full py-[10px] ${isActive ? 'bg-[#84cc16]' : 'bg-white'}`}>
                 <Text
                   className={`text-[13px] font-bold ${isActive ? 'text-white' : 'text-gray-500'}`}>
                   {filter}
@@ -110,9 +110,7 @@ export default function MemoriesScreen() {
             // CARD 1: PHOTO MEMORY
             if (memory.type === 'photo') {
               return (
-                <View
-                  key={memory.id}
-                  className="mb-6 rounded-[24px] border border-gray-200 bg-white p-4">
+                <View key={memory.id} className="mb-6 rounded-[24px] bg-white p-4">
                   {/* Author Header */}
                   <View className="mb-4 flex-row items-center justify-between">
                     <View className="flex-row items-center">
@@ -175,9 +173,7 @@ export default function MemoriesScreen() {
             // CARD 2: AUDIO MEMORY
             if (memory.type === 'audio') {
               return (
-                <View
-                  key={memory.id}
-                  className="mb-6 rounded-[24px] border border-gray-200 bg-white p-4">
+                <View key={memory.id} className="mb-6 rounded-[24px] bg-white p-4">
                   {/* Author Header */}
                   <View className="mb-4 flex-row items-center">
                     <Image
@@ -253,9 +249,7 @@ export default function MemoriesScreen() {
             // CARD 3: WRITTEN STORY MEMORY
             if (memory.type === 'story') {
               return (
-                <View
-                  key={memory.id}
-                  className="mb-6 rounded-[24px] border border-gray-200 bg-white p-5">
+                <View key={memory.id} className="mb-6 rounded-[24px] bg-white p-5">
                   {/* Author Header */}
                   <View className="mb-5 flex-row items-center">
                     <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-[#f0f9ed]">

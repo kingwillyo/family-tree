@@ -1,39 +1,26 @@
-import { NativeTabs, Icon, Label, VectorIcon } from 'expo-router/unstable-native-tabs';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { NativeTabs } from 'expo-router/unstable-native-tabs';
 
 export default function TabsLayout() {
   return (
-    <NativeTabs>
+    <NativeTabs tintColor="#059669">
       <NativeTabs.Trigger name="tree">
-        <Label>Tree</Label>
-        <Icon
-          src={<VectorIcon family={MaterialCommunityIcons} name="tree" />}
-          selectedColor="#059669"
-        />
+        <NativeTabs.Trigger.Label>Tree</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="leaf.fill" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="memories">
-        <Label>Memories</Label>
-        <Icon
-          src={<VectorIcon family={MaterialCommunityIcons} name="image-multiple" />}
-          selectedColor="#059669"
-        />
+        <NativeTabs.Trigger.Label>Memories</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="photo.on.rectangle" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="collab">
-        <Label>Collab</Label>
-        <Icon
-          src={<VectorIcon family={MaterialCommunityIcons} name="account-group" />}
-          selectedColor="#059669"
-        />
+        <NativeTabs.Trigger.Label>Collab</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="person.2.fill" />
       </NativeTabs.Trigger>
 
       <NativeTabs.Trigger name="profile">
-        <Label>Profile</Label>
-        <Icon
-          src={<VectorIcon family={MaterialCommunityIcons} name="account" />}
-          selectedColor="#059669"
-        />
+        <NativeTabs.Trigger.Label>Profile</NativeTabs.Trigger.Label>
+        <NativeTabs.Trigger.Icon sf="person.fill" />
       </NativeTabs.Trigger>
     </NativeTabs>
   );
