@@ -15,7 +15,7 @@ export const mockTreeData = {
       role: 'FATHER',
       dates: '1735–1826',
       imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/f/ff/Gilbert_Stuart_John_Adams.jpg/480px-Gilbert_Stuart_John_Adams.jpg',
+        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=300&auto=format&fit=crop',
     },
     {
       id: 'parent-2',
@@ -23,7 +23,7 @@ export const mockTreeData = {
       role: 'MOTHER',
       dates: '1744–1818',
       imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/f/f6/Abigail_Adams.jpg/480px-Abigail_Adams.jpg',
+        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=300&auto=format&fit=crop',
     },
   ],
   mainAncestor: {
@@ -33,7 +33,7 @@ export const mockTreeData = {
     subTitle: '6TH U.S. PRESIDENT',
     dates: '1767–1848',
     imageUrl:
-      'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4f/John_Quincy_Adams_by_George_Caleb_Bingham%2C_1844.jpg/480px-John_Quincy_Adams_by_George_Caleb_Bingham%2C_1844.jpg',
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=300&auto=format&fit=crop',
   },
   children: [
     {
@@ -41,14 +41,14 @@ export const mockTreeData = {
       name: 'George W. Adams',
       dates: '1801–1829',
       imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/George_Washington_Adams_by_Charles_Bird_King.jpg/480px-George_Washington_Adams_by_Charles_Bird_King.jpg',
+        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=300&auto=format&fit=crop',
     },
     {
       id: 'current-user', // Mocking the current user
       name: 'Me',
       dates: '1803–1834',
       imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/John_Adams_II_by_Charles_Bird_King.jpg/480px-John_Adams_II_by_Charles_Bird_King.jpg',
+        'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=300&auto=format&fit=crop',
     },
   ],
   grandchildren: [
@@ -57,7 +57,7 @@ export const mockTreeData = {
       name: 'Charles F. Adams',
       dates: '1807–1886',
       imageUrl:
-        'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Charles_Francis_Adams%2C_Sr._-_Brady-Handy.jpg/480px-Charles_Francis_Adams%2C_Sr._-_Brady-Handy.jpg',
+        'https://images.unsplash.com/photo-1599566150163-29194dcaad36?q=80&w=300&auto=format&fit=crop',
     },
   ],
 };
