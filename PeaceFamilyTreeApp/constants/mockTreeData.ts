@@ -51,4 +51,14 @@ export const mockTreeData = {
         'https://upload.wikimedia.org/wikipedia/commons/thumb/7/75/John_Adams_II_by_Charles_Bird_King.jpg/480px-John_Adams_II_by_Charles_Bird_King.jpg',
     },
   ],
+  grandchildren: [
+    {
+      id: 'grandchild-1',
+      name: 'Charles F. Adams',
+      dates: '1807–1886',
+      imageUrl:
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Charles_Francis_Adams%2C_Sr._-_Brady-Handy.jpg/480px-Charles_Francis_Adams%2C_Sr._-_Brady-Handy.jpg',
+    },
+  ],
 };
+

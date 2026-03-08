@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome, Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 
 type CardVariant = 'parent' | 'main' | 'child' | 'add';
 
 export interface TreeMockCardProps {
   variant: CardVariant;
+  id?: string;
   name?: string;
   role?: string;
   dates?: string;
@@ -15,12 +17,15 @@ export interface TreeMockCardProps {
 
 export function TreeMockCard({
   variant,
+  id = 'mock-id',
   name,
   role,
   dates,
   imageUrl,
   subTitle,
 }: TreeMockCardProps) {
+  const router = useRouter();
+
   if (variant === 'add') {
     return (
       <TouchableOpacity
@@ -34,7 +39,9 @@ export function TreeMockCard({
 
   if (variant === 'main') {
     return (
-      <View
+      <TouchableOpacity
+        onPress={() => router.push(`/member/${id}` as any)}
+        activeOpacity={0.8}
         className="w-[280px] items-center rounded-[32px] border border-gray-100 bg-white p-6"
         style={styles.shadow}>
         <View className="relative mb-5">
@@ -59,13 +66,15 @@ export function TreeMockCard({
         <View className="rounded-full bg-[#f0f5f2] px-4 py-1.5">
           <Text className="text-xs font-bold uppercase tracking-wider text-[#648470]">{role}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   }
 
   // parent or child
   return (
-    <View
+    <TouchableOpacity
+      onPress={() => router.push(`/member/${id}` as any)}
+      activeOpacity={0.8}
       className="w-40 items-center rounded-[24px] border border-gray-50 bg-white p-5"
       style={styles.shadow}>
       <Image
@@ -81,7 +90,7 @@ export function TreeMockCard({
         {name}
       </Text>
       {dates && <Text className="text-center text-xs font-medium text-[#a4b2a9]">{dates}</Text>}
-    </View>
+    </TouchableOpacity>
   );
 }
 
