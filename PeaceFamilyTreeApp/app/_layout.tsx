@@ -3,6 +3,11 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../lib/auth-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import {
+  ReactNativeGrabRoot,
+  ReactNativeGrabScreen,
+  ReactNativeGrabContextProvider,
+} from 'react-native-grab';
 
 function LayoutContent() {
   const { session, appLoading } = useAuth();
@@ -21,21 +26,27 @@ function LayoutContent() {
 
   if (appLoading) return null;
   return (
+  <ReactNativeGrabScreen>
+      <ReactNativeGrabContextProvider value={{ screen: "home" }}>
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="(auth)" />
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="member" />
       <Stack.Screen name="invite" options={{ presentation: 'modal' }} />
     </Stack>
+    </ReactNativeGrabContextProvider>
+    </ReactNativeGrabScreen>
   );
 }
 
 export default function RootLayout() {
   return (
+    <ReactNativeGrabRoot>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
         <LayoutContent />
       </AuthProvider>
     </GestureHandlerRootView>
+    </ReactNativeGrabRoot>
   );
 }
