@@ -1,48 +1,56 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Switch,
   Text,
   TouchableOpacity,
   View,
+  TextInput,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
+import { Feather, FontAwesome5 } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
-import { Input } from '../../components/Input';
 
 export default function AddMemberScreen() {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
 
-  const [fullName, setFullName] = useState('');
-  const [dob, setDob] = useState(''); // YYYY-MM-DD
-  const [dod, setDod] = useState('');
-  const [bio, setBio] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [dob, setDob] = useState('');
+  const [birthPlace, setBirthPlace] = useState('');
   const [isLiving, setIsLiving] = useState(true);
-  const [visibility, setVisibility] = useState<'family' | 'private'>('family');
   const [error, setError] = useState('');
+
+  const handleClear = () => {
+    setFirstName('');
+    setLastName('');
+    setDob('');
+    setBirthPlace('');
+    setIsLiving(true);
+    setError('');
+  };
 
   const handleSave = async () => {
     setError('');
-    if (!fullName.trim()) {
-      setError('Full name is required');
+    const fullName = `${firstName.trim()} ${lastName.trim()}`.trim();
+    if (!fullName) {
+      setError('Name is required');
       return;
     }
 
     setSaving(true);
     try {
       const { error: insertError } = await supabase.from('profiles').insert({
-        full_name: fullName.trim(),
+        full_name: fullName,
         date_of_birth: dob || null,
-        date_of_death: dod || null,
-        bio: bio.trim() || null,
+        birth_place: birthPlace || null,
         is_living: isLiving,
-        visibility,
+        visibility: 'family',
       });
 
       if (insertError) {
@@ -56,22 +64,19 @@ export default function AddMemberScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-[#fcfcfb]" edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pb-3 pt-2">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
-          <Text className="text-base font-medium text-emerald-600">← Cancel</Text>
+      <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
+        <TouchableOpacity onPress={() => router.back()} className="h-10 w-10 items-center justify-center">
+          <Feather name="x" size={24} color="#6d7b73" />
         </TouchableOpacity>
-        <Text className="text-base font-bold text-gray-900">Add Member</Text>
-        <TouchableOpacity
-          onPress={handleSave}
-          disabled={saving}
-          className="rounded-full bg-emerald-600 px-4 py-2">
-          {saving ? (
-            <ActivityIndicator size="small" color="white" />
-          ) : (
-            <Text className="text-sm font-semibold text-white">Save</Text>
-          )}
+        <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44]">
+          Add Member
+        </Text>
+        <TouchableOpacity onPress={handleClear} className="h-10 items-center justify-center">
+          <Text className="text-[13px] font-bold uppercase tracking-[0.1em] text-[#849f8d]">
+            Clear
+          </Text>
         </TouchableOpacity>
       </View>
 
@@ -80,88 +85,185 @@ export default function AddMemberScreen() {
         className="flex-1">
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-6 pb-12"
+          contentContainerClassName="px-6 pb-20"
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          {/* Avatar placeholder */}
-          <View className="mb-6 items-center pt-4">
-            <View className="h-24 w-24 items-center justify-center rounded-full bg-emerald-100">
-              <Text className="text-5xl">👤</Text>
+          
+          {/* Avatar Section */}
+          <View className="mb-10 items-center pt-6">
+            <View className="relative">
+              <View className="h-[120px] w-[120px] items-center justify-center rounded-full border-2 border-dashed border-[#d3d9d6] bg-white">
+                <Feather name="camera" size={32} color="#c4ccc7" />
+              </View>
+              <View className="absolute bottom-0 right-1 h-8 w-8 items-center justify-center rounded-full bg-[#8cc63f] border-2 border-white">
+                <Feather name="plus" size={18} color="white" />
+              </View>
             </View>
-            <Text className="mt-2 text-sm text-gray-400">Photo upload coming soon</Text>
+            <Text className="mt-4 text-[10px] font-bold uppercase tracking-[0.15em] text-[#9aa7a0]">
+              Add Portrait
+            </Text>
           </View>
 
-          {/* Form fields */}
-          <Input
-            label="Full Name *"
-            placeholder="e.g. Grace Adeyemi"
-            value={fullName}
-            onChangeText={setFullName}
-            error={error && !fullName.trim() ? error : ''}
-          />
+          {/* Personal Information Section */}
+          <Text className="mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9aa7a0]">
+            Personal Information
+          </Text>
 
-          <Input
-            label="Date of Birth"
-            placeholder="YYYY-MM-DD"
-            value={dob}
-            onChangeText={setDob}
-            keyboardType="numbers-and-punctuation"
-          />
+          <View className="mb-5">
+            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.05em] text-[#9aa7a0]">
+              First Name
+            </Text>
+            <TextInput
+              className="h-14 w-full rounded-2xl border border-[#f0f2f0] bg-white px-5 text-base text-[#1a2b21]"
+              placeholder="e.g. Eleanor"
+              placeholderTextColor="#c4ccc7"
+              value={firstName}
+              onChangeText={setFirstName}
+            />
+          </View>
 
-          <Input
-            label="Date of Death"
-            placeholder="YYYY-MM-DD (leave blank if living)"
-            value={dod}
-            onChangeText={(v) => {
-              setDod(v);
-              if (v) setIsLiving(false);
-            }}
-            keyboardType="numbers-and-punctuation"
-          />
+          <View className="mb-5">
+            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.05em] text-[#9aa7a0]">
+              Last Name
+            </Text>
+            <TextInput
+              className="h-14 w-full rounded-2xl border border-[#f0f2f0] bg-white px-5 text-base text-[#1a2b21]"
+              placeholder="e.g. Rigby"
+              placeholderTextColor="#c4ccc7"
+              value={lastName}
+              onChangeText={setLastName}
+            />
+          </View>
 
-          <Input
-            label="Life Summary / Bio"
-            placeholder="A short biography or memorable story…"
-            value={bio}
-            onChangeText={setBio}
-            multiline
-          />
-
-          {/* Toggles */}
-          <View className="mt-2 rounded-2xl border border-gray-100 bg-white p-4">
-            <View className="flex-row items-center justify-between py-2">
-              <View>
-                <Text className="font-semibold text-gray-900">Living</Text>
-                <Text className="text-xs text-gray-400">Is this person still alive?</Text>
-              </View>
-              <Switch
-                value={isLiving}
-                onValueChange={setIsLiving}
-                trackColor={{ true: '#059669' }}
+          <View className="mb-5">
+            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.05em] text-[#9aa7a0]">
+              Birth Date
+            </Text>
+            <View className="relative">
+              <TextInput
+                className="h-14 w-full rounded-2xl border border-[#f0f2f0] bg-white px-5 pr-12 text-base text-[#1a2b21]"
+                placeholder="mm/dd/yyyy"
+                placeholderTextColor="#c4ccc7"
+                value={dob}
+                onChangeText={setDob}
               />
+              <View className="absolute right-5 top-4">
+                <Feather name="calendar" size={18} color="#6d7b73" />
+              </View>
             </View>
+          </View>
 
-            <View className="my-1 border-t border-gray-100" />
+          <View className="mb-8">
+            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.05em] text-[#9aa7a0]">
+              Birth Place
+            </Text>
+            <View className="relative">
+              <TextInput
+                className="h-14 w-full rounded-2xl border border-[#f0f2f0] bg-white px-5 pr-12 text-base text-[#1a2b21]"
+                placeholder="City, Country"
+                placeholderTextColor="#c4ccc7"
+                value={birthPlace}
+                onChangeText={setBirthPlace}
+              />
+              <View className="absolute right-5 top-4">
+                <Feather name="map-pin" size={18} color="#c4ccc7" />
+              </View>
+            </View>
+          </View>
 
-            <View className="flex-row items-center justify-between py-2">
-              <View>
-                <Text className="font-semibold text-gray-900">Private</Text>
-                <Text className="text-xs text-gray-400">
-                  Hidden from viewers (admin/editors only)
+          {/* Privacy Settings Section */}
+          <View className="rounded-[32px] bg-white p-6" style={styles.cardShadow}>
+            <Text className="mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9aa7a0]">
+              Privacy Settings
+            </Text>
+
+            <View className="mb-6 h-[54px] w-full flex-row rounded-2xl bg-[#f8f9f8] p-1.5">
+              <TouchableOpacity
+                onPress={() => setIsLiving(true)}
+                className={`flex-1 items-center justify-center rounded-[14px] ${
+                  isLiving ? 'bg-white shadow-sm' : ''
+                }`}
+                style={isLiving ? styles.toggleShadow : {}}>
+                <Text className={`text-[12px] font-bold uppercase tracking-[0.1em] ${
+                  isLiving ? 'text-[#3e4d44]' : 'text-[#9aa7a0]'
+                }`}>
+                  Living
                 </Text>
-              </View>
-              <Switch
-                value={visibility === 'private'}
-                onValueChange={(v) => setVisibility(v ? 'private' : 'family')}
-                trackColor={{ true: '#d97706' }}
-              />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setIsLiving(false)}
+                className={`flex-1 items-center justify-center rounded-[14px] ${
+                  !isLiving ? 'bg-white shadow-sm' : ''
+                }`}
+                style={!isLiving ? styles.toggleShadow : {}}>
+                <Text className={`text-[12px] font-bold uppercase tracking-[0.1em] ${
+                  !isLiving ? 'text-[#3e4d44]' : 'text-[#9aa7a0]'
+                }`}>
+                  Deceased
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            <Text className="text-center text-[11px] leading-5 text-[#9aa7a0]">
+              Profiles of living people are kept private by default and are only visible to you and members you specifically invite.
+            </Text>
           </View>
 
-          {error && fullName.trim() ? (
-            <Text className="mt-3 text-sm text-red-500">{error}</Text>
+          {/* Action Buttons */}
+          <View className="mt-10 items-center">
+            <TouchableOpacity
+              onPress={handleSave}
+              disabled={saving}
+              activeOpacity={0.8}
+              className="h-[64px] w-full items-center justify-center rounded-[24px] bg-[#8cc63f]"
+              style={styles.saveButtonShadow}>
+              {saving ? (
+                <ActivityIndicator color="white" />
+              ) : (
+                <Text className="text-[15px] font-extrabold uppercase tracking-[0.15em] text-white">
+                  Save Member
+                </Text>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="mt-6 h-12 items-center justify-center">
+              <Text className="text-[12px] font-bold uppercase tracking-[0.2em] text-[#9aa7a0]">
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
+          
+          {error ? (
+            <Text className="mt-4 text-center text-sm text-red-500">{error}</Text>
           ) : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  cardShadow: {
+    shadowColor: '#4a6b57',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+  toggleShadow: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  saveButtonShadow: {
+    shadowColor: '#8cc63f',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 8,
+  },
+});
