@@ -3,7 +3,7 @@ import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
-type CardVariant = 'parent' | 'main' | 'child' | 'add';
+type CardVariant = 'parent' | 'main' | 'child' | 'add-child' | 'add-spouse' | 'add-parent';
 
 export interface TreeMockCardProps {
   variant: CardVariant;
@@ -13,6 +13,7 @@ export interface TreeMockCardProps {
   dates?: string;
   imageUrl?: string;
   subTitle?: string;
+  admin?: boolean;
 }
 
 export function TreeMockCard({
@@ -23,16 +24,21 @@ export function TreeMockCard({
   dates,
   imageUrl,
   subTitle,
+  admin = false,
 }: TreeMockCardProps) {
   const router = useRouter();
 
-  if (variant === 'add') {
+  if (variant.startsWith('add')) {
+    let label = 'Add Child';
+    if (variant === 'add-spouse') label = 'Add Spouse';
+    if (variant === 'add-parent') label = 'Add Parent';
+
     return (
       <TouchableOpacity
         className="h-[170px] w-40 items-center justify-center rounded-[24px] border-2 border-dashed border-[#c4ccc7] bg-[#f8f9f6]/50"
         activeOpacity={0.7}>
         <Feather name="plus" size={24} color="#909b95" />
-        <Text className="mt-2 text-sm font-bold text-[#6d7b73]">Add Child</Text>
+        <Text className="mt-2 text-sm font-bold text-[#6d7b73]">{label}</Text>
       </TouchableOpacity>
     );
   }
@@ -49,9 +55,11 @@ export function TreeMockCard({
             source={{ uri: imageUrl || 'https://via.placeholder.com/150' }}
             className="h-[120px] w-[120px] rounded-full border-4 border-[#2b4030]"
           />
-          <View className="absolute bottom-1 right-1 h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#3cd52e]">
-            <FontAwesome name="star" size={14} color="white" />
-          </View>
+          {admin && (
+            <View className="absolute bottom-1 right-1 h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#3cd52e]">
+              <FontAwesome name="star" size={14} color="white" />
+            </View>
+          )}
         </View>
 
         <Text className="mb-1 text-center text-2xl font-bold text-gray-900">{name}</Text>
@@ -77,10 +85,17 @@ export function TreeMockCard({
       activeOpacity={0.8}
       className="w-40 items-center rounded-[24px] border border-gray-50 bg-white p-5"
       style={styles.shadow}>
-      <Image
-        source={{ uri: imageUrl || 'https://via.placeholder.com/100' }}
-        className="mb-4 h-[72px] w-[72px] rounded-full"
-      />
+      <View className="relative mb-4">
+        <Image
+          source={{ uri: imageUrl || 'https://via.placeholder.com/100' }}
+          className="h-[72px] w-[72px] rounded-full"
+        />
+        {admin && (
+          <View className="absolute bottom-0 right-0 h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#3cd52e]">
+            <FontAwesome name="star" size={10} color="white" />
+          </View>
+        )}
+      </View>
       {role && variant === 'parent' && (
         <Text className="mb-1 text-[10px] font-bold uppercase tracking-wider text-[#849f8d]">
           {role}

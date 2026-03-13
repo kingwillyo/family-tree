@@ -76,7 +76,7 @@ export default function MemoriesScreen() {
         contentContainerStyle={{ paddingBottom: 100 }}>
         {/* Search Bar */}
         <View className="mb-4 px-6">
-          <View className="flex-row items-center rounded-[12px] border border-gray-200 bg-white px-4 py-3">
+          <View className="flex-row items-center rounded-full border border-gray-200 bg-white px-4 py-3">
             <Feather name="search" size={18} color="#9ca3af" />
             <TextInput
               placeholder="Search family stories..."
@@ -110,7 +110,7 @@ export default function MemoriesScreen() {
             // CARD 1: PHOTO MEMORY
             if (memory.type === 'photo') {
               return (
-                <View key={memory.id} className="mb-6 rounded-[24px] bg-white p-4">
+                <View key={memory.id} className="mb-6 rounded-3xl bg-white p-4">
                   {/* Author Header */}
                   <View className="mb-4 flex-row items-center justify-between">
                     <View className="flex-row items-center">
@@ -133,7 +133,7 @@ export default function MemoriesScreen() {
                   </View>
 
                   {/* Image Content */}
-                  <View className="mb-4 overflow-hidden rounded-[16px] bg-gray-100">
+                  <View className="mb-4 overflow-hidden rounded-2xl bg-gray-100">
                     <Image
                       source={{ uri: memory.content.image }}
                       className="h-[220px] w-full"
@@ -161,7 +161,7 @@ export default function MemoriesScreen() {
                   {/* Tags */}
                   <View className="flex-row flex-wrap gap-2">
                     {memory.content.tags?.map((tag, idx) => (
-                      <View key={idx} className="rounded-md bg-[#f0f9ed] px-3 py-1.5">
+                      <View key={idx} className="rounded-full bg-[#f0f9ed] px-3 py-1.5">
                         <Text className="text-[12px] font-bold text-[#65a30d]">{tag}</Text>
                       </View>
                     ))}
@@ -173,7 +173,7 @@ export default function MemoriesScreen() {
             // CARD 2: AUDIO MEMORY
             if (memory.type === 'audio') {
               return (
-                <View key={memory.id} className="mb-6 rounded-[24px] bg-white p-4">
+                <View key={memory.id} className="mb-6 rounded-3xl bg-white p-4">
                   {/* Author Header */}
                   <View className="mb-4 flex-row items-center">
                     <Image
@@ -191,7 +191,7 @@ export default function MemoriesScreen() {
                   </View>
 
                   {/* Custom Audio Player */}
-                  <View className="mb-4 flex-row items-center rounded-[16px] border border-[#f0f5ee] bg-[#fbfdf9] p-4">
+                  <View className="mb-4 flex-row items-center rounded-2xl border border-[#f0f5ee] bg-[#fbfdf9] p-4">
                     {/* Play Button */}
                     <TouchableOpacity className="mr-4 h-12 w-12 items-center justify-center rounded-full bg-[#84cc16]">
                       <Ionicons name="play" size={22} color="white" style={{ marginLeft: 3 }} />
@@ -230,7 +230,7 @@ export default function MemoriesScreen() {
                   {/* Tags */}
                   <View className="mb-3 flex-row flex-wrap gap-2">
                     {memory.content.tags?.map((tag, idx) => (
-                      <View key={idx} className="rounded-md bg-[#f0f9ed] px-3 py-1.5">
+                      <View key={idx} className="rounded-full bg-[#f0f9ed] px-3 py-1.5">
                         <Text className="text-[12px] font-bold text-[#65a30d]">{tag}</Text>
                       </View>
                     ))}
@@ -249,7 +249,7 @@ export default function MemoriesScreen() {
             // CARD 3: WRITTEN STORY MEMORY
             if (memory.type === 'story') {
               return (
-                <View key={memory.id} className="mb-6 rounded-[24px] bg-white p-5">
+                <View key={memory.id} className="mb-6 rounded-3xl bg-white p-5">
                   {/* Author Header */}
                   <View className="mb-5 flex-row items-center">
                     <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-[#f0f9ed]">
@@ -284,7 +284,7 @@ export default function MemoriesScreen() {
                       {memory.content.tags?.map((tag, idx) => (
                         <View
                           key={idx}
-                          className="cursor-pointer rounded-md bg-[#f0f9ed] px-3 py-1.5 transition-colors hover:bg-green-100">
+                          className="cursor-pointer rounded-full bg-[#f0f9ed] px-3 py-1.5 transition-colors hover:bg-green-100">
                           <Text className="text-[12px] font-bold text-[#65a30d]">{tag}</Text>
                         </View>
                       ))}

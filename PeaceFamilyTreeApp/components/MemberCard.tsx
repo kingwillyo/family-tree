@@ -47,7 +47,7 @@ export function MemberCard({ profile, showRelationship, onPress }: MemberCardPro
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={handlePress}
-      className="mb-3 flex-row items-center rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+      className="mb-3 flex-row items-center rounded-3xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
       {/* Avatar */}
       {profile.avatar_url ? (
         <Image
