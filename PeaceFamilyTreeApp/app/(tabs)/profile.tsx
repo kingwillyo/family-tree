@@ -85,8 +85,9 @@ export default function TabProfileScreen() {
             </View>
             <TouchableOpacity 
               onPress={() => router.push('/member/edit/current-user')}
-              className="absolute bottom-1 right-1 h-9 w-9 items-center justify-center rounded-full border-4 border-[#fcFAF8] bg-[#32CD32]">
-              <Feather name="edit-2" size={14} color="white" />
+              className="absolute -bottom-1 -right-1 h-12 w-12 items-center justify-center rounded-full border-4 border-[#fcFAF8] bg-[#8cc63f]"
+              activeOpacity={0.7}>
+              <Feather name="edit-2" size={16} color="white" />
             </TouchableOpacity>
           </View>
 

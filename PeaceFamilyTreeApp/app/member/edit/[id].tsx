@@ -84,30 +84,27 @@ export default function EditMemberScreen() {
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-gray-50">
-        <ActivityIndicator size="large" color="#059669" />
-      </SafeAreaView>
-    );
-  }
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-[#fcfcfb]" edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center justify-between px-4 pb-3 pt-2">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
-          <Text className="text-base font-medium text-emerald-600">← Cancel</Text>
+      <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
+        <TouchableOpacity onPress={() => router.back()} className="h-10 w-10 items-center justify-center">
+          <Feather name="x" size={24} color="#6d7b73" />
         </TouchableOpacity>
-        <Text className="text-base font-bold text-gray-900">Edit Member</Text>
-        <TouchableOpacity
-          onPress={handleSave}
+        <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44]">
+          Edit Member
+        </Text>
+        <TouchableOpacity 
+          onPress={handleSave} 
           disabled={saving}
-          className="rounded-full bg-emerald-600 px-4 py-2">
+          className="h-10 items-center justify-center">
           {saving ? (
-            <ActivityIndicator size="small" color="white" />
+            <ActivityIndicator size="small" color="#8cc63f" />
           ) : (
-            <Text className="text-sm font-semibold text-white">Save</Text>
+            <Text className="text-[13px] font-bold uppercase tracking-[0.1em] text-[#8cc63f]">
+              Done
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -184,7 +181,7 @@ export default function EditMemberScreen() {
           </View>
 
           <Button
-            title="Save Changes"
+            title="Update Member"
             onPress={handleSave}
             loading={saving}
             variant="brand"

@@ -8,7 +8,7 @@ import {
   SafeAreaView,
   Dimensions,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
@@ -81,6 +81,7 @@ const mockProfile = {
 
 export default function MemberProfileScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
 
   return (
     <SafeAreaView className="flex-1 bg-[#fcFAF8]">
@@ -113,8 +114,11 @@ export default function MemberProfileScreen() {
                 style={{ backgroundColor: '#eccdae' }}
               />
             </View>
-            <TouchableOpacity className="absolute bottom-0 right-1 h-9 w-9 items-center justify-center rounded-full border border-gray-100 bg-white">
-              <Feather name="edit-2" size={16} color="#059669" />
+            <TouchableOpacity 
+              onPress={() => router.push(`/member/edit/${id}`)}
+              activeOpacity={0.7}
+              className="absolute -bottom-1 -right-1 h-12 w-12 items-center justify-center rounded-full border-4 border-[#fcFAF8] bg-[#8cc63f]">
+              <Feather name="edit-2" size={16} color="white" />
             </TouchableOpacity>
           </View>
 
