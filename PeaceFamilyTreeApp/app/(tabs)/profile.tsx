@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAuth } from '../../lib/auth-context';
 import { Button } from '../../components/Button';
 
@@ -68,6 +69,7 @@ const mockProfile = {
 
 export default function TabProfileScreen() {
   const { signOut } = useAuth();
+  const router = useRouter();
 
   return (
     <SafeAreaView className="flex-1 bg-[#fcFAF8]" edges={['top']}>
@@ -81,7 +83,9 @@ export default function TabProfileScreen() {
             <View className="h-[140px] w-[140px] overflow-hidden rounded-full border-4 border-white bg-gray-200">
               <Image source={{ uri: mockProfile.avatar }} className="h-full w-full" />
             </View>
-            <TouchableOpacity className="absolute bottom-1 right-1 h-9 w-9 items-center justify-center rounded-full border-4 border-[#fcFAF8] bg-[#32CD32]">
+            <TouchableOpacity 
+              onPress={() => router.push('/member/edit/current-user')}
+              className="absolute bottom-1 right-1 h-9 w-9 items-center justify-center rounded-full border-4 border-[#fcFAF8] bg-[#32CD32]">
               <Feather name="edit-2" size={14} color="white" />
             </TouchableOpacity>
           </View>

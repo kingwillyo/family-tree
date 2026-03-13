@@ -9,6 +9,7 @@ import {
   View,
   TextInput,
   StyleSheet,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -211,40 +212,23 @@ export default function AddMemberScreen() {
 
           {/* Privacy Settings Section */}
           <View className="rounded-[32px] bg-white p-6" style={styles.cardShadow}>
-            <Text className="mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9aa7a0]">
-              Privacy Settings
-            </Text>
-
-            <View className="mb-6 h-[54px] w-full flex-row rounded-2xl bg-[#f8f9f8] p-1.5">
-              <TouchableOpacity
-                onPress={() => setIsLiving(true)}
-                className={`flex-1 items-center justify-center rounded-[14px] ${
-                  isLiving ? 'bg-white shadow-sm' : ''
-                }`}
-                style={isLiving ? styles.toggleShadow : {}}>
-                <Text className={`text-[12px] font-bold uppercase tracking-[0.1em] ${
-                  isLiving ? 'text-[#3e4d44]' : 'text-[#9aa7a0]'
-                }`}>
-                  Living
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-[14px] font-bold text-[#1a2b21]">
+                  Still Living
                 </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setIsLiving(false)}
-                className={`flex-1 items-center justify-center rounded-[14px] ${
-                  !isLiving ? 'bg-white shadow-sm' : ''
-                }`}
-                style={!isLiving ? styles.toggleShadow : {}}>
-                <Text className={`text-[12px] font-bold uppercase tracking-[0.1em] ${
-                  !isLiving ? 'text-[#3e4d44]' : 'text-[#9aa7a0]'
-                }`}>
-                  Deceased
+                <Text className="text-[12px] text-[#9aa7a0] mt-1">
+                  Toggle off for deceased relatives
                 </Text>
-              </TouchableOpacity>
+              </View>
+              <Switch
+                value={isLiving}
+                onValueChange={setIsLiving}
+                trackColor={{ false: '#e2e8e4', true: '#8cc63f' }}
+                thumbColor={Platform.OS === 'ios' ? '#ffffff' : '#ffffff'}
+                ios_backgroundColor="#e2e8e4"
+              />
             </View>
-
-            <Text className="text-center text-[11px] leading-5 text-[#9aa7a0]">
-              Profiles of living people are kept private by default and are only visible to you and members you specifically invite.
-            </Text>
           </View>
 
           {/* Action Buttons */}

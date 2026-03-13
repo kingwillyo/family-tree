@@ -8,13 +8,15 @@ export interface TreeFloatingControlsProps {
   onZoomOut: () => void;
   onCenter: () => void;
   onAddMember?: () => void;
+  onInvite?: () => void;
 }
 
 export function TreeFloatingControls({ 
   onZoomIn, 
   onZoomOut, 
   onCenter,
-  onAddMember 
+  onAddMember,
+  onInvite
 }: TreeFloatingControlsProps) {
   const insets = useSafeAreaInsets();
 
@@ -52,6 +54,18 @@ export function TreeFloatingControls({
             shadowRadius: 12,
           }}>
           <MaterialCommunityIcons name="crosshairs-gps" size={24} color="#6b7280" />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={onInvite}
+          className="elevation-3 h-14 w-14 items-center justify-center rounded-[20px] border border-gray-100/50 bg-white shadow-sm"
+          style={{
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.05,
+            shadowRadius: 12,
+          }}>
+          <Feather name="send" size={22} color="#6b7280" />
         </TouchableOpacity>
       </View>
 

@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../lib/auth-context';
+import { Feather } from '@expo/vector-icons';
 
 type InviteRole = 'editor' | 'viewer';
 
@@ -52,11 +53,14 @@ export default function InviteScreen() {
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
       {/* Header */}
-      <View className="flex-row items-center px-4 pb-3 pt-2">
-        <TouchableOpacity onPress={() => router.back()} className="p-2">
-          <Text className="text-base font-medium text-emerald-600">← Back</Text>
+      <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
+        <TouchableOpacity onPress={() => router.back()} className="h-10 w-10 items-center justify-center">
+          <Feather name="chevron-left" size={24} color="#6d7b73" />
         </TouchableOpacity>
-        <Text className="ml-2 text-base font-bold text-gray-900">Invite Member</Text>
+        <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44]">
+          Invite Family
+        </Text>
+        <View className="w-10" />
       </View>
 
       <View className="px-6 pt-4">
@@ -101,23 +105,24 @@ export default function InviteScreen() {
         <TouchableOpacity
           onPress={handleGenerate}
           disabled={generating}
-          className="mb-4 items-center rounded-2xl bg-emerald-600 py-4">
+          className="mb-4 items-center rounded-2xl bg-[#8cc63f] py-4 shadow-sm"
+          style={{ shadowColor: '#8cc63f', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 }}>
           {generating ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-base font-bold text-white">Generate Invite Link</Text>
+            <Text className="text-base font-bold text-white uppercase tracking-wider">Generate Link</Text>
           )}
         </TouchableOpacity>
 
         {/* Generated link */}
         {inviteLink && (
-          <View className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4">
-            <Text className="mb-2 text-sm font-semibold text-emerald-700">✓ Link ready</Text>
-            <Text className="mb-4 break-all text-xs text-gray-500">{inviteLink}</Text>
+          <View className="rounded-2xl border border-[#e8f5e9] bg-white p-6 shadow-sm">
+            <Text className="mb-2 text-sm font-bold text-[#3e4d44]">✓ Link ready</Text>
+            <Text className="mb-6 break-all text-xs text-[#9aa7a0] leading-5">{inviteLink}</Text>
             <TouchableOpacity
               onPress={handleShare}
-              className="items-center rounded-xl bg-emerald-600 py-3">
-              <Text className="text-sm font-bold text-white">📤 Share Link</Text>
+              className="items-center rounded-xl bg-[#8cc63f] py-4">
+              <Text className="text-sm font-bold text-white uppercase tracking-widest">Share Link</Text>
             </TouchableOpacity>
           </View>
         )}

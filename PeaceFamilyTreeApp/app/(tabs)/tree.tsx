@@ -436,6 +436,7 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
           onZoomOut={handleZoomOut}
           onCenter={centerTree}
           onAddMember={() => router.push('/member/add')}
+          onInvite={() => router.push('/invite')}
         />
 
         <TreeSearchButton />

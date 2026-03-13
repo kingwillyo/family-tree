@@ -8,11 +8,15 @@ import {
   Text,
   TouchableOpacity,
   View,
+  TextInput,
+  StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { supabase } from '../../../lib/supabase';
 import { Input } from '../../../components/Input';
+import { Feather } from '@expo/vector-icons';
+import { Button } from '../../../components/Button';
 
 export default function EditMemberScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -115,66 +119,76 @@ export default function EditMemberScreen() {
           className="flex-1"
           contentContainerClassName="px-6 pb-12"
           keyboardShouldPersistTaps="handled">
-          <Input
-            label="Full Name *"
-            placeholder="e.g. Grace Adeyemi"
-            value={fullName}
-            onChangeText={setFullName}
-            error={error && !fullName.trim() ? error : ''}
-          />
+          <View className="mb-8">
+            <Input
+              label="Full Name *"
+              placeholder="e.g. Grace Adeyemi"
+              value={fullName}
+              onChangeText={setFullName}
+              error={error && !fullName.trim() ? error : ''}
+            />
+          </View>
 
-          <Input
-            label="Date of Birth"
-            placeholder="YYYY-MM-DD"
-            value={dob}
-            onChangeText={setDob}
-            keyboardType="numbers-and-punctuation"
-          />
+          <View className="mb-8">
+            <Input
+              label="Date of Birth"
+              placeholder="YYYY-MM-DD"
+              value={dob}
+              onChangeText={setDob}
+              keyboardType="numbers-and-punctuation"
+            />
+          </View>
 
-          <Input
-            label="Date of Death"
-            placeholder="YYYY-MM-DD"
-            value={dod}
-            onChangeText={(v) => {
-              setDod(v);
-              if (v) setIsLiving(false);
-            }}
-            keyboardType="numbers-and-punctuation"
-          />
+          <View className="mb-8">
+            <Input
+              label="Date of Death"
+              placeholder="YYYY-MM-DD"
+              value={dod}
+              onChangeText={(v) => {
+                setDod(v);
+                if (v) setIsLiving(false);
+              }}
+              keyboardType="numbers-and-punctuation"
+            />
+          </View>
 
-          <Input
-            label="Life Summary / Bio"
-            placeholder="A short biography or memorable story…"
-            value={bio}
-            onChangeText={setBio}
-            multiline
-          />
+          <View className="mb-10">
+            <Input
+              label="Life Summary / Bio"
+              placeholder="A short biography or memorable story…"
+              value={bio}
+              onChangeText={setBio}
+              multiline
+            />
+          </View>
 
-          <View className="mt-2 rounded-2xl border border-gray-100 bg-white p-4">
-            <View className="flex-row items-center justify-between py-2">
-              <View>
-                <Text className="font-semibold text-gray-900">Living</Text>
-                <Text className="text-xs text-gray-400">Is this person still alive?</Text>
+          {/* Privacy Settings Section */}
+          <View className="rounded-[32px] bg-white p-6 mb-10" style={styles.cardShadow}>
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1">
+                <Text className="text-[14px] font-bold text-[#1a2b21]">
+                  Still Living
+                </Text>
+                <Text className="text-[12px] text-[#9aa7a0] mt-1">
+                  Toggle off for deceased relatives
+                </Text>
               </View>
               <Switch
                 value={isLiving}
                 onValueChange={setIsLiving}
-                trackColor={{ true: '#059669' }}
-              />
-            </View>
-            <View className="my-1 border-t border-gray-100" />
-            <View className="flex-row items-center justify-between py-2">
-              <View>
-                <Text className="font-semibold text-gray-900">Private</Text>
-                <Text className="text-xs text-gray-400">Hidden from viewers</Text>
-              </View>
-              <Switch
-                value={visibility === 'private'}
-                onValueChange={(v) => setVisibility(v ? 'private' : 'family')}
-                trackColor={{ true: '#d97706' }}
+                trackColor={{ false: '#e2e8e4', true: '#8cc63f' }}
+                thumbColor={Platform.OS === 'ios' ? '#ffffff' : '#ffffff'}
+                ios_backgroundColor="#e2e8e4"
               />
             </View>
           </View>
+
+          <Button
+            title="Save Changes"
+            onPress={handleSave}
+            loading={saving}
+            variant="brand"
+          />
 
           {error && fullName.trim() ? (
             <Text className="mt-3 text-sm text-red-500">{error}</Text>
@@ -184,3 +198,13 @@ export default function EditMemberScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  cardShadow: {
+    shadowColor: '#4a6b57',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.06,
+    shadowRadius: 24,
+    elevation: 4,
+  },
+});
