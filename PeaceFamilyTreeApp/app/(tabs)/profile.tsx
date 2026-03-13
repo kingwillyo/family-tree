@@ -3,6 +3,7 @@ import { View, Text, Image, ScrollView, TouchableOpacity, Dimensions } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useAuth } from '../../lib/auth-context';
+import { Button } from '../../components/Button';
 
 const { width } = Dimensions.get('window');
 
@@ -214,12 +215,12 @@ export default function TabProfileScreen() {
 
         {/* Sign Out Button */}
         <View className="mb-4 mt-2 px-6">
-          <TouchableOpacity
+          <Button
+            title="Sign Out"
             onPress={signOut}
-            className="flex-row items-center justify-center gap-3 rounded-[24px] bg-[#fff1f2] py-[18px]">
-            <Feather name="log-out" size={18} color="#e11d48" />
-            <Text className="text-[16px] font-bold text-[#e11d48]">Sign Out</Text>
-          </TouchableOpacity>
+            variant="danger-light"
+            icon="log-out"
+          />
         </View>
       </ScrollView>
     </SafeAreaView>

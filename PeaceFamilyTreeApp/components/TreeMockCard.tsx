@@ -14,6 +14,9 @@ export interface TreeMockCardProps {
   imageUrl?: string;
   subTitle?: string;
   admin?: boolean;
+  relativeId?: string;
+  relativeName?: string;
+  relationType?: 'parent' | 'child' | 'spouse';
 }
 
 export function TreeMockCard({
@@ -25,6 +28,9 @@ export function TreeMockCard({
   imageUrl,
   subTitle,
   admin = false,
+  relativeId,
+  relativeName,
+  relationType,
 }: TreeMockCardProps) {
   const router = useRouter();
 
@@ -35,6 +41,13 @@ export function TreeMockCard({
 
     return (
       <TouchableOpacity
+        onPress={() => {
+          const params = new URLSearchParams();
+          if (relativeId) params.append('relativeId', relativeId);
+          if (relativeName) params.append('relativeName', relativeName);
+          if (relationType) params.append('relationType', relationType);
+          router.push(`/member/add?${params.toString()}`);
+        }}
         className="h-[170px] w-40 items-center justify-center rounded-[24px] border-2 border-dashed border-[#c4ccc7] bg-[#f8f9f6]/50"
         activeOpacity={0.7}>
         <Feather name="plus" size={24} color="#909b95" />

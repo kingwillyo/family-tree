@@ -11,18 +11,25 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
-import { Feather, FontAwesome5 } from '@expo/vector-icons';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
+import { Button } from '../../components/Button';
 
 export default function AddMemberScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{
+    relativeId?: string;
+    relativeName?: string;
+    relationType?: string;
+  }>();
   const [saving, setSaving] = useState(false);
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [dob, setDob] = useState('');
   const [birthPlace, setBirthPlace] = useState('');
+  const [relation, setRelation] = useState(params.relationType || 'child');
   const [isLiving, setIsLiving] = useState(true);
   const [error, setError] = useState('');
 
@@ -171,6 +178,37 @@ export default function AddMemberScreen() {
             </View>
           </View>
 
+          {/* Relationship Section */}
+          <View className="mb-10">
+            <Text className="mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9aa7a0]">
+              Relationship
+            </Text>
+            <View className="flex-row gap-3">
+              {['child', 'spouse', 'parent'].map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  onPress={() => setRelation(type)}
+                  className={`flex-1 items-center justify-center rounded-2xl border py-4 ${
+                    relation === type
+                      ? 'border-[#8cc63f] bg-[#f8fcf4]'
+                      : 'border-[#f0f2f0] bg-white'
+                  }`}>
+                  <Text
+                    className={`text-[12px] font-bold uppercase tracking-[0.05em] ${
+                      relation === type ? 'text-[#3e4d44]' : 'text-[#9aa7a0]'
+                    }`}>
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+            {(params.relativeId || params.relativeName) && (
+              <Text className="mt-4 text-center text-[11px] font-medium text-[#849f8d]">
+                Adding as {relation} to {params.relativeName || 'relative'}
+              </Text>
+            )}
+          </View>
+
           {/* Privacy Settings Section */}
           <View className="rounded-[32px] bg-white p-6" style={styles.cardShadow}>
             <Text className="mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9aa7a0]">
@@ -211,20 +249,12 @@ export default function AddMemberScreen() {
 
           {/* Action Buttons */}
           <View className="mt-10 items-center">
-            <TouchableOpacity
+            <Button
+              title="Save Member"
               onPress={handleSave}
-              disabled={saving}
-              activeOpacity={0.8}
-              className="h-[64px] w-full items-center justify-center rounded-[24px] bg-[#8cc63f]"
-              style={styles.saveButtonShadow}>
-              {saving ? (
-                <ActivityIndicator color="white" />
-              ) : (
-                <Text className="text-[15px] font-extrabold uppercase tracking-[0.15em] text-white">
-                  Save Member
-                </Text>
-              )}
-            </TouchableOpacity>
+              loading={saving}
+              variant="brand"
+            />
 
             <TouchableOpacity
               onPress={() => router.back()}
@@ -258,12 +288,5 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
-  },
-  saveButtonShadow: {
-    shadowColor: '#8cc63f',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
   },
 });

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Dimensions, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { TreeMockCard } from '../../components/TreeMockCard';
 import { mockD3Descendants, mockD3Ancestors, D3TreeNode } from '../../constants/mockTreeData';
 import { TreeFloatingControls } from '../../components/TreeFloatingControls';
@@ -26,7 +27,17 @@ const injectDescendantPlaceholders = (node: D3TreeNode): D3TreeNode => {
   const children = node.children ? node.children.map(injectDescendantPlaceholders) : [];
   return {
     ...node,
-    children: [...children, { id: `add-child-${node.id}`, name: 'Add Child', role: 'ADD_CHILD' }],
+    children: [
+      ...children,
+      {
+        id: `add-child-${node.id}`,
+        name: 'Add Child',
+        role: 'ADD_CHILD',
+        relativeId: node.id,
+        relativeName: node.name,
+        relationType: 'child',
+      },
+    ],
   };
 };
 
@@ -35,13 +46,23 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
   if (children.length === 0 && node.id !== 'main-1-ancestors-root') {
     return {
       ...node,
-      children: [{ id: `add-parent-${node.id}`, name: 'Add Parent', role: 'ADD_PARENT' }],
+      children: [
+        {
+          id: `add-parent-${node.id}`,
+          name: 'Add Parent',
+          role: 'ADD_PARENT',
+          relativeId: node.id,
+          relativeName: node.name,
+          relationType: 'parent',
+        },
+      ],
     };
   }
   return { ...node, children };
 };
 
   export default function TreeScreen() {
+    const router = useRouter();
     const { width, height } = Dimensions.get('window');
 
     // Reanimated Shared Values
@@ -125,10 +146,23 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
     // PINCH GESTURE
     const pinchGesture = Gesture.Pinch()
       .onUpdate((e) => {
-        scale.value = clamp(savedScale.value * e.scale, minScale, maxScale);
+        const nextScale = clamp(savedScale.value * e.scale, minScale, maxScale);
+        
+        // Focal point logic for pinch
+        // Shift translateX/Y so the point under the fingers stays in place
+        const focalX = e.focalX - width / 2;
+        const focalY = e.focalY - height / 2;
+        
+        const scaleChange = nextScale / scale.value;
+        
+        translateX.value = focalX - (focalX - translateX.value) * scaleChange;
+        translateY.value = focalY - (focalY - translateY.value) * scaleChange;
+        scale.value = nextScale;
       })
       .onEnd(() => {
         savedScale.value = scale.value;
+        savedTranslateX.value = translateX.value;
+        savedTranslateY.value = translateY.value;
       });
 
     const composedGestures = Gesture.Simultaneous(panGesture, pinchGesture);
@@ -143,16 +177,27 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
       };
     });
 
+    const zoomAt = (nextScale: number, focalX: number, focalY: number) => {
+      'worklet';
+      const scaleChange = nextScale / scale.value;
+      
+      translateX.value = withTiming(focalX - (focalX - translateX.value) * scaleChange);
+      translateY.value = withTiming(focalY - (focalY - translateY.value) * scaleChange);
+      scale.value = withTiming(nextScale, {}, () => {
+        savedScale.value = nextScale;
+        savedTranslateX.value = translateX.value;
+        savedTranslateY.value = translateY.value;
+      });
+    };
+
     const handleZoomIn = () => {
       const nextScale = clamp(scale.value + 0.25, minScale, maxScale);
-      scale.value = withTiming(nextScale);
-      savedScale.value = nextScale;
+      zoomAt(nextScale, 0, 0); // Zoom towards center of screen (0,0 in our coordinate system)
     };
 
     const handleZoomOut = () => {
       const nextScale = clamp(scale.value - 0.25, minScale, maxScale);
-      scale.value = withTiming(nextScale);
-      savedScale.value = nextScale;
+      zoomAt(nextScale, 0, 0); // Zoom towards center of screen
     };
 
     const centerTree = React.useCallback(() => {
@@ -268,6 +313,9 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
                         imageUrl={data.imageUrl}
                         subTitle={data.subTitle}
                         admin={data.admin}
+                        relativeId={data.relativeId}
+                        relativeName={data.relativeName}
+                        relationType={data.relationType}
                       />
                     </View>
                     {!isPlaceholder && (
@@ -300,7 +348,7 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
                               admin={data.spouse.admin}
                             />
                           ) : (
-                            <TreeMockCard variant="add-spouse" />
+                            <TreeMockCard variant="add-spouse" relativeId={data.id} relationType="spouse" />
                           )}
                         </View>
                       </>
@@ -336,6 +384,9 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
                         dates={data.dates}
                         imageUrl={data.imageUrl}
                         admin={data.admin}
+                        relativeId={data.relativeId}
+                        relativeName={data.relativeName}
+                        relationType={data.relationType}
                       />
                     </View>
                     {!isPlaceholder && (
@@ -368,7 +419,7 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
                               admin={data.spouse.admin}
                             />
                           ) : (
-                            <TreeMockCard variant="add-spouse" />
+                            <TreeMockCard variant="add-spouse" relativeId={data.id} relationType="spouse" />
                           )}
                         </View>
                       </>
@@ -384,6 +435,7 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
           onCenter={centerTree}
+          onAddMember={() => router.push('/member/add')}
         />
 
         <TreeSearchButton />

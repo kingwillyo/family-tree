@@ -8,6 +8,9 @@ export interface D3TreeNode {
   children?: D3TreeNode[];
   spouse?: D3TreeNode;
   admin?: boolean;
+  relativeId?: string;
+  relativeName?: string;
+  relationType?: 'parent' | 'child' | 'spouse';
 }
 
 export const mockD3Descendants: D3TreeNode = {

@@ -7,9 +7,15 @@ export interface TreeFloatingControlsProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onCenter: () => void;
+  onAddMember?: () => void;
 }
 
-export function TreeFloatingControls({ onZoomIn, onZoomOut, onCenter }: TreeFloatingControlsProps) {
+export function TreeFloatingControls({ 
+  onZoomIn, 
+  onZoomOut, 
+  onCenter,
+  onAddMember 
+}: TreeFloatingControlsProps) {
   const insets = useSafeAreaInsets();
 
   // Base offset above tabs. A typical native tab bar height is around 50-60 on android, 50 + insets on iOS.
@@ -51,6 +57,7 @@ export function TreeFloatingControls({ onZoomIn, onZoomOut, onCenter }: TreeFloa
 
       {/* FLOATING FAB - RIGHT */}
       <TouchableOpacity
+        onPress={onAddMember}
         activeOpacity={0.8}
         className="elevation-4 absolute right-6 z-50 h-16 w-16 items-center justify-center rounded-[20px] bg-[#3cd52e]"
         style={{
