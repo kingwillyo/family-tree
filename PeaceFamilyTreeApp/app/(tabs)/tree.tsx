@@ -1,9 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Dimensions, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { TreeMockCard } from '../../components/TreeMockCard';
-import { mockD3Descendants, mockD3Ancestors, D3TreeNode } from '../../constants/mockTreeData';
+import { D3TreeNode } from '../../constants/mockTreeData';
+import { useAuth } from '../../lib/auth-context';
+import {
+  fetchCurrentUserProfile,
+  fetchTreeData,
+  buildD3Tree,
+} from '../../lib/treeService';
+import { ActivityIndicator, Text } from 'react-native';
+import LottieView from 'lottie-react-native';
 import { TreeFloatingControls } from '../../components/TreeFloatingControls';
 import { TreeSearchButton } from '../../components/TreeSearchButton';
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
@@ -63,7 +71,46 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
 
   export default function TreeScreen() {
     const router = useRouter();
+    const { user } = useAuth();
     const { width, height } = Dimensions.get('window');
+
+    // Real data state
+    const [rootProfileId, setRootProfileId] = useState<string | null>(null);
+    const [treeLoading, setTreeLoading] = useState(true);
+    const [treeError, setTreeError] = useState<string | null>(null);
+    const [rawDescendants, setRawDescendants] = useState<D3TreeNode | null>(null);
+    const [rawAncestors, setRawAncestors] = useState<D3TreeNode | null>(null);
+
+    const loadTree = React.useCallback(async () => {
+      if (!user) return;
+      setTreeLoading(true);
+      setTreeError(null);
+      try {
+        const currentProfile = await fetchCurrentUserProfile(user.id);
+        const rootId = currentProfile?.id ?? null;
+        setRootProfileId(rootId);
+
+        const { profiles, relationships } = await fetchTreeData();
+
+        if (rootId) {
+          const { descendants, ancestors } = buildD3Tree(profiles, relationships, rootId);
+          setRawDescendants(descendants);
+          setRawAncestors(ancestors);
+        } else {
+          setTreeError('No profile found for your account. Ask an admin to link your profile.');
+        }
+      } catch (e: any) {
+        setTreeError(e?.message ?? 'Failed to load tree');
+      } finally {
+        setTreeLoading(false);
+      }
+    }, [user]);
+
+    useFocusEffect(
+      React.useCallback(() => {
+        loadTree();
+      }, [loadTree])
+    );
 
     // Reanimated Shared Values
     const scale = useSharedValue(1);
@@ -88,8 +135,10 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
 
     // Calculate layout
     useMemo(() => {
+      if (!rawDescendants || !rawAncestors) return;
+
       // 1. Descendants Tree Layout
-      const descData = injectDescendantPlaceholders(mockD3Descendants);
+      const descData = injectDescendantPlaceholders(rawDescendants);
       const descRoot = d3.hierarchy(descData);
       const descTreeLayout = d3.tree<D3TreeNode>().nodeSize([400, 360]);
       const layout = descTreeLayout(descRoot);
@@ -98,14 +147,14 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
       setDescendantNodes(nodes);
       setDescendantLinks(layout.links());
 
-      const currentUserNode = nodes.find((n) => n.data.id === 'current-user');
+      const currentUserNode = nodes.find((n) => n.data.id === rootProfileId);
       if (currentUserNode) {
         setTreeOffsetX(-currentUserNode.x);
         setTreeOffsetY(-currentUserNode.y);
       }
 
       // 2. Ancestors Tree Layout
-      const ancData = injectAncestorPlaceholders(mockD3Ancestors);
+      const ancData = injectAncestorPlaceholders(rawAncestors);
       const ancRoot = d3.hierarchy(ancData);
       const ancTreeLayout = d3.tree<D3TreeNode>().nodeSize([400, PARENT_DISTANCE_Y + 100]);
       const ancLayout = ancTreeLayout(ancRoot);
@@ -116,7 +165,7 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
 
       // Pass along ancestor links, including the origin link
       setAncestorLinks(ancLayout.links());
-    }, []);
+    }, [rawDescendants, rawAncestors, rootProfileId]);
 
     // Pan limits
     const contentWidth = 2000;
@@ -200,6 +249,56 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
       zoomAt(nextScale, 0, 0); // Zoom towards center of screen
     };
 
+    const handleSearch = (query: string) => {
+      if (!query.trim()) return;
+      
+      const lowerQuery = query.toLowerCase();
+
+      // Search descendants
+      let found = descendantNodes.find(n => n.data.name.toLowerCase().includes(lowerQuery));
+      let isAncestor = false;
+
+      // Search ancestors if not found
+      if (!found) {
+        found = ancestorNodes.find(n => n.data.name.toLowerCase().includes(lowerQuery));
+        isAncestor = !!found;
+      }
+
+      // Search spouses of descendants
+      let isSpouse = false;
+      let spouseHost: typeof found | undefined;
+      if (!found) {
+        const dHost = descendantNodes.find(n => n.data.spouse?.name.toLowerCase().includes(lowerQuery));
+        if (dHost) {
+          found = dHost; // center on the host node
+          isSpouse = true;
+        }
+      }
+
+      // Search spouses of ancestors
+      if (!found && !spouseHost) {
+        const aHost = ancestorNodes.find(n => n.data.spouse?.name.toLowerCase().includes(lowerQuery));
+        if (aHost) {
+          found = aHost;
+          isAncestor = true;
+          isSpouse = true;
+        }
+      }
+
+      if (found) {
+        // We found a node, calculate its offset relative to the center origin
+        const nodeX = found.x + treeOffsetX + (isSpouse ? 140 : 0);
+        const nodeY = (isAncestor ? -found.y : found.y) + treeOffsetY;
+
+        scale.value = withSpring(1.0);
+        savedScale.value = 1.0;
+        translateX.value = withSpring(-nodeX);
+        savedTranslateX.value = -nodeX;
+        translateY.value = withSpring(-nodeY);
+        savedTranslateY.value = -nodeY;
+      }
+    };
+
     const centerTree = React.useCallback(() => {
       scale.value = withSpring(1);
       savedScale.value = 1;
@@ -222,6 +321,29 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
     const originX = contentWidth / 2;
     const originY = contentHeight / 2;
 
+    if (treeLoading) {
+      return (
+        <SafeAreaView className="flex-1 items-center justify-center bg-[#f8f9f6]">
+          <LottieView
+            source={{ uri: 'https://lottie.host/e80c1d31-b731-43b0-b47b-0db6d116b3d2/axUS3P5Rhp.lottie' }}
+            autoPlay
+            loop
+            speed={2.0}
+            style={{ width: 150, height: 150 }}
+          />
+        </SafeAreaView>
+      );
+    }
+
+    if (treeError) {
+      return (
+        <SafeAreaView className="flex-1 items-center justify-center bg-[#f8f9f6] px-10">
+          <Text className="mb-2 text-center text-lg font-bold text-gray-800">Tree not found</Text>
+          <Text className="text-center text-sm text-gray-400">{treeError}</Text>
+        </SafeAreaView>
+      );
+    }
+
     return (
       <SafeAreaView className="flex-1 bg-[#f8f9f6]" edges={['top']}>
         <GestureDetector gesture={composedGestures}>
@@ -241,8 +363,8 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
               <Svg width={contentWidth} height={contentHeight} style={StyleSheet.absoluteFill}>
                 {/* Descendant Links */}
                 {descendantLinks.map((link, index) => {
-                  const isTargetMain = link.target.data.id === 'current-user';
-                  const isSourceMain = link.source.data.id === 'current-user';
+                  const isTargetMain = link.target.data.id === rootProfileId;
+                  const isSourceMain = link.source.data.id === rootProfileId;
 
                   const sourceYOffset = isSourceMain ? 150 : 110;
                   const targetYOffset = isTargetMain ? 150 : 110;
@@ -287,7 +409,7 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
               {/* Render Descendants */}
               {descendantNodes.map((node) => {
                 const { data, x, y } = node;
-                const isMain = data.id === 'current-user';
+                const isMain = data.id === rootProfileId;
                 const isPlaceholder = data.role?.startsWith('ADD');
                 const cardW = isPlaceholder ? SMALL_CARD_WIDTH : (isMain ? CARD_WIDTH : SMALL_CARD_WIDTH);
                 const cardH = isMain ? CARD_HEIGHT + 60 : CARD_HEIGHT;
@@ -439,7 +561,7 @@ const injectAncestorPlaceholders = (node: D3TreeNode): D3TreeNode => {
           onInvite={() => router.push('/invite')}
         />
 
-        <TreeSearchButton />
+        <TreeSearchButton onSearch={handleSearch} />
       </SafeAreaView>
     );
   }

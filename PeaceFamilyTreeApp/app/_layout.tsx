@@ -33,6 +33,7 @@ function LayoutContent() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="member" options={{ presentation: 'modal' }} />
       <Stack.Screen name="invite" options={{ presentation: 'modal' }} />
+      <Stack.Screen name="create-memory" options={{ presentation: 'modal' }} />
     </Stack>
     </ReactNativeGrabContextProvider>
     </ReactNativeGrabScreen>
