@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import * as Location from 'expo-location';
 
 export default function CreateMemoryScreen() {
   const router = useRouter();
@@ -24,8 +25,13 @@ export default function CreateMemoryScreen() {
   const [mediaUri, setMediaUri] = useState<string | null>(null); // For Audio
   const [mediaUris, setMediaUris] = useState<string[]>([]); // For Photos
   const [previewImage, setPreviewImage] = useState<string | null>(null); // For zoom modal
+  const [location, setLocation] = useState<string | null>(null);
+  const [isLocationModalVisible, setLocationModalVisible] = useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+  const [manualLocation, setManualLocation] = useState('');
 
-  const isPostEnabled = title.trim() || memory.trim() || mediaUri || mediaUris.length > 0;
+  const isPostEnabled =
+    title.trim() || memory.trim() || mediaUri || mediaUris.length > 0 || location;
 
   const handlePhotoUpload = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -69,8 +75,103 @@ export default function CreateMemoryScreen() {
     setMediaUri(null);
   };
 
+  const handleCurrentLocation = async () => {
+    setIsFetchingLocation(true);
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        alert('Permission to access location was denied');
+        setIsFetchingLocation(false);
+        return;
+      }
+
+      const locationData = await Location.getCurrentPositionAsync({});
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: locationData.coords.latitude,
+        longitude: locationData.coords.longitude,
+      });
+
+      if (geocode && geocode.length > 0) {
+        const place = geocode[0];
+        const locationString =
+          `${place.city || place.name || ''}, ${place.region || place.country || ''}`
+            .replace(/^, | ,/g, '')
+            .trim();
+        setLocation(locationString || 'Current Location');
+      } else {
+        setLocation('Current Location');
+      }
+      setLocationModalVisible(false);
+    } catch (error) {
+      alert('Error fetching location');
+    } finally {
+      setIsFetchingLocation(false);
+    }
+  };
+
+  const handleManualLocationSubmit = () => {
+    if (manualLocation.trim()) {
+      setLocation(manualLocation.trim());
+      setLocationModalVisible(false);
+      setManualLocation('');
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+      {/* Location Modal */}
+      <Modal
+        visible={isLocationModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setLocationModalVisible(false)}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end bg-black/40">
+          <View className="rounded-t-3xl bg-white p-6 pb-10 shadow-lg">
+            <View className="mb-4 flex-row items-center justify-between">
+              <Text className="text-[18px] font-bold text-gray-900">Add Location</Text>
+              <TouchableOpacity
+                onPress={() => setLocationModalVisible(false)}
+                className="rounded-full bg-gray-100 p-2">
+                <Feather name="x" size={20} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              onPress={handleCurrentLocation}
+              disabled={isFetchingLocation}
+              className="mb-6 flex-row items-center rounded-xl border border-green-100/50 bg-green-50/70 p-4">
+              <View className="mr-3 rounded-full bg-[#84cc16] p-2.5">
+                <Feather name="navigation" size={18} color="white" />
+              </View>
+              <Text className="text-[15px] font-bold text-[#65a30d]">
+                {isFetchingLocation ? 'Locating...' : 'Use Current Location'}
+              </Text>
+            </TouchableOpacity>
+
+            <View className="flex-row items-center rounded-full border border-gray-200 bg-white px-4 py-3">
+              <Feather name="search" size={18} color="#9ca3af" />
+              <TextInput
+                value={manualLocation}
+                onChangeText={setManualLocation}
+                placeholder="Search for a location..."
+                placeholderTextColor="#9ca3af"
+                className="ml-3 flex-1 text-[15px] font-medium text-gray-900"
+                onSubmitEditing={handleManualLocationSubmit}
+              />
+              {manualLocation.length > 0 && (
+                <TouchableOpacity
+                  onPress={handleManualLocationSubmit}
+                  className="ml-2 rounded-full bg-[#84cc16] px-3 py-1.5">
+                  <Text className="text-[12px] font-bold text-white">Add</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Zoomable Preview Modal */}
       <Modal
         visible={!!previewImage}
@@ -133,6 +234,17 @@ export default function CreateMemoryScreen() {
               className="mr-3 h-10 w-10 rounded-full bg-gray-200"
             />
             <View className="flex-1 pt-1">
+              {location && (
+                <View className="mb-2 flex-row items-center self-start rounded-full bg-[#f0f9ed] px-3 py-1">
+                  <Feather name="map-pin" size={12} color="#65a30d" />
+                  <Text className="ml-1.5 text-[12px] font-bold text-[#65a30d]">{location}</Text>
+                  <TouchableOpacity
+                    onPress={() => setLocation(null)}
+                    className="ml-2 border-l border-green-200/50 pl-2">
+                    <Feather name="x" size={12} color="#65a30d" />
+                  </TouchableOpacity>
+                </View>
+              )}
               <TextInput
                 value={title}
                 onChangeText={setTitle}
@@ -245,8 +357,10 @@ export default function CreateMemoryScreen() {
             className={`mr-5 items-center justify-center rounded-full p-2 ${activeType === 'audio' ? 'bg-[#84cc16]' : 'bg-green-50/50'}`}>
             <Feather name="mic" size={22} color={activeType === 'audio' ? 'white' : '#84cc16'} />
           </TouchableOpacity>
-          <TouchableOpacity className="mr-5 items-center justify-center rounded-full bg-green-50/50 p-2">
-            <Feather name="map-pin" size={22} color="#84cc16" />
+          <TouchableOpacity
+            onPress={() => setLocationModalVisible(true)}
+            className={`mr-5 items-center justify-center rounded-full p-2 ${location ? 'bg-[#84cc16]' : 'bg-green-50/50'}`}>
+            <Feather name="map-pin" size={22} color={location ? 'white' : '#84cc16'} />
           </TouchableOpacity>
           <TouchableOpacity className="mr-5 items-center justify-center rounded-full bg-green-50/50 p-2">
             <Feather name="user-plus" size={22} color="#84cc16" />
