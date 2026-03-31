@@ -16,9 +16,12 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { supabase } from '../../lib/supabase';
 import { Button } from '../../components/Button';
+import { addMember } from '../../lib/treeService';
+import { useAuth } from '../../lib/auth-context';
 
 export default function AddMemberScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     relativeId?: string;
     relativeName?: string;
@@ -53,19 +56,30 @@ export default function AddMemberScreen() {
 
     setSaving(true);
     try {
-      const { error: insertError } = await supabase.from('profiles').insert({
-        full_name: fullName,
-        date_of_birth: dob || null,
-        birth_place: birthPlace || null,
-        is_living: isLiving,
-        visibility: 'family',
-      });
+      if (!user) {
+        setError('User not authenticated');
+        return;
+      }
 
-      if (insertError) {
-        setError(insertError.message);
+      const result = await addMember(
+        {
+          fullName,
+          dateOfBirth: dob || null,
+          birthPlace: birthPlace || null,
+          isLiving,
+        },
+        user.id,
+        params.relativeId,
+        relation as 'parent' | 'child' | 'spouse'
+      );
+
+      if ('error' in result && result.error) {
+        setError(result.error);
       } else {
         router.back();
       }
+    } catch (e: any) {
+      setError(e.message || 'An error occurred');
     } finally {
       setSaving(false);
     }

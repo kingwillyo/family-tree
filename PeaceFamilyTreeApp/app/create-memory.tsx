@@ -8,18 +8,97 @@ import {
   KeyboardAvoidingView,
   Platform,
   Image,
+  Modal,
+  Dimensions,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 
 export default function CreateMemoryScreen() {
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [memory, setMemory] = useState('');
+  const [activeType, setActiveType] = useState<'story' | 'photo' | 'audio'>('story');
+  const [mediaUri, setMediaUri] = useState<string | null>(null); // For Audio
+  const [mediaUris, setMediaUris] = useState<string[]>([]); // For Photos
+  const [previewImage, setPreviewImage] = useState<string | null>(null); // For zoom modal
+
+  const isPostEnabled = title.trim() || memory.trim() || mediaUri || mediaUris.length > 0;
+
+  const handlePhotoUpload = async () => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (permissionResult.granted === false) {
+      alert("You've refused to allow this app to access your photos!");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ['images'],
+      allowsMultipleSelection: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      setActiveType('photo');
+      const newUris = result.assets.map((asset) => asset.uri);
+      setMediaUris((prev) => [...prev, ...newUris]);
+    }
+  };
+
+  const removeImage = (indexToRemove: number) => {
+    setMediaUris((prev) => {
+      const updated = prev.filter((_, idx) => idx !== indexToRemove);
+      if (updated.length === 0 && activeType === 'photo') {
+        setActiveType('story');
+      }
+      return updated;
+    });
+  };
+
+  const handleAudioUpload = () => {
+    setActiveType('audio');
+    // Mocking an audio recording to avoid native module crashes in Expo Go
+    setMediaUri('mock_audio');
+  };
+
+  const clearAudio = () => {
+    setActiveType('story');
+    setMediaUri(null);
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+      {/* Zoomable Preview Modal */}
+      <Modal
+        visible={!!previewImage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPreviewImage(null)}>
+        <View className="flex-1 bg-black/95">
+          <TouchableOpacity
+            onPress={() => setPreviewImage(null)}
+            className="absolute right-6 top-14 z-50 rounded-full bg-white/20 p-2.5">
+            <Feather name="x" size={24} color="white" />
+          </TouchableOpacity>
+          <ScrollView
+            maximumZoomScale={3}
+            minimumZoomScale={1}
+            contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}>
+            <Image
+              source={{ uri: previewImage || undefined }}
+              style={{
+                width: Dimensions.get('window').width,
+                height: Dimensions.get('window').height * 0.7,
+              }}
+              resizeMode="contain"
+            />
+          </ScrollView>
+        </View>
+      </Modal>
+
       {/* Header */}
       <View className="flex-row items-center justify-between border-b border-gray-100 px-4 pb-3 pt-2">
         <TouchableOpacity onPress={() => router.back()} className="py-2">
@@ -29,10 +108,10 @@ export default function CreateMemoryScreen() {
         <Text className="text-[16px] font-bold text-gray-900">New Memory</Text>
 
         <TouchableOpacity
-          className={`rounded-full px-4 py-1.5 ${title.trim() || memory.trim() ? 'bg-[#84cc16]' : 'bg-green-100/50'}`}
-          disabled={!title.trim() && !memory.trim()}>
+          className={`rounded-full px-4 py-1.5 ${isPostEnabled ? 'bg-[#84cc16]' : 'bg-green-100/50'}`}
+          disabled={!isPostEnabled}>
           <Text
-            className={`text-[14px] font-bold ${title.trim() || memory.trim() ? 'text-white' : 'text-green-800/40'}`}>
+            className={`text-[14px] font-bold ${isPostEnabled ? 'text-white' : 'text-green-800/40'}`}>
             Post
           </Text>
         </TouchableOpacity>
@@ -61,27 +140,110 @@ export default function CreateMemoryScreen() {
                 placeholderTextColor="#9ca3af"
                 className="mb-2 text-[20px] font-bold text-gray-900"
               />
-              <TextInput
-                value={memory}
-                onChangeText={setMemory}
-                placeholder="What's on your mind?"
-                placeholderTextColor="#9ca3af"
-                multiline
-                scrollEnabled={false}
-                className="min-h-[120px] text-[16px] leading-[24px] text-gray-800"
-                style={{ textAlignVertical: 'top' }}
-              />
+              {activeType === 'story' && (
+                <TextInput
+                  value={memory}
+                  onChangeText={setMemory}
+                  placeholder="Add your story..."
+                  placeholderTextColor="#9ca3af"
+                  multiline
+                  scrollEnabled={false}
+                  className="min-h-[60px] text-[16px] leading-[24px] text-gray-800"
+                  style={{ textAlignVertical: 'top' }}
+                />
+              )}
+
+              {activeType === 'photo' && mediaUris.length > 0 && (
+                <View className="mt-3">
+                  <View className="mb-2 mt-1 h-[250px] w-full overflow-hidden rounded-xl bg-gray-100">
+                    <TouchableOpacity
+                      activeOpacity={0.9}
+                      onPress={() => setPreviewImage(mediaUris[0])}
+                      className="h-full w-full">
+                      <Image
+                        source={{ uri: mediaUris[0] }}
+                        className="h-full w-full"
+                        resizeMode="cover"
+                      />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => removeImage(0)}
+                      className="absolute right-3 top-3 items-center justify-center rounded-full bg-black/50 p-1.5">
+                      <Feather name="x" size={16} color="white" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {mediaUris.length > 1 && (
+                    <View className="flex-row flex-wrap gap-2">
+                      {mediaUris.slice(1).map((uri, index) => (
+                        <View
+                          key={index + 1}
+                          className="h-[100px] w-[31.5%] overflow-hidden rounded-xl bg-gray-100">
+                          <TouchableOpacity
+                            activeOpacity={0.9}
+                            onPress={() => setPreviewImage(uri)}
+                            className="h-full w-full">
+                            <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            onPress={() => removeImage(index + 1)}
+                            className="absolute right-1.5 top-1.5 items-center justify-center rounded-full bg-black/50 p-1">
+                            <Feather name="x" size={14} color="white" />
+                          </TouchableOpacity>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {activeType === 'audio' && (
+                <View className="mt-3 flex-row items-center justify-between rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
+                  <View className="flex-1 flex-row items-center">
+                    <TouchableOpacity className="mr-3 items-center justify-center rounded-full bg-[#84cc16] p-2.5">
+                      <Ionicons name="play" size={20} color="white" style={{ marginLeft: 2 }} />
+                    </TouchableOpacity>
+                    <View className="mr-4 flex-1">
+                      <View className="h-6 flex-row items-end items-center justify-between overflow-hidden">
+                        {[
+                          10, 15, 8, 20, 24, 12, 16, 22, 14, 8, 18, 24, 16, 10, 14, 20, 12, 18, 8,
+                          14, 22, 16,
+                        ].map((height, i) => (
+                          <View
+                            key={i}
+                            className="w-[3px] rounded-full bg-[#84cc16]"
+                            style={{ height: height }}
+                          />
+                        ))}
+                      </View>
+                      <View className="mt-2 flex-row justify-between">
+                        <Text className="text-[12px] font-medium text-gray-500">0:00</Text>
+                        <Text className="text-[12px] font-medium text-gray-500">2:15</Text>
+                      </View>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={clearAudio}
+                    className="items-center justify-center rounded-full bg-gray-200 p-1.5">
+                    <Feather name="x" size={14} color="#6b7280" />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         </ScrollView>
 
         {/* Action Toolbar */}
         <View className="flex-row items-center border-t border-gray-100/80 bg-white px-4 py-3 pb-6">
-          <TouchableOpacity className="mr-5 items-center justify-center rounded-full bg-green-50/50 p-2">
-            <Feather name="image" size={22} color="#84cc16" />
+          <TouchableOpacity
+            onPress={handlePhotoUpload}
+            className={`mr-5 items-center justify-center rounded-full p-2 ${activeType === 'photo' ? 'bg-[#84cc16]' : 'bg-green-50/50'}`}>
+            <Feather name="image" size={22} color={activeType === 'photo' ? 'white' : '#84cc16'} />
           </TouchableOpacity>
-          <TouchableOpacity className="mr-5 items-center justify-center rounded-full bg-green-50/50 p-2">
-            <Feather name="mic" size={22} color="#84cc16" />
+          <TouchableOpacity
+            onPress={handleAudioUpload}
+            className={`mr-5 items-center justify-center rounded-full p-2 ${activeType === 'audio' ? 'bg-[#84cc16]' : 'bg-green-50/50'}`}>
+            <Feather name="mic" size={22} color={activeType === 'audio' ? 'white' : '#84cc16'} />
           </TouchableOpacity>
           <TouchableOpacity className="mr-5 items-center justify-center rounded-full bg-green-50/50 p-2">
             <Feather name="map-pin" size={22} color="#84cc16" />

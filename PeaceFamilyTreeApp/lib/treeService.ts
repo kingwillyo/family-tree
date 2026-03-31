@@ -118,18 +118,31 @@ export function buildD3Tree(
   const spouseOf = new Map<string, string>();        // id → spouseId (first spouse)
 
   for (const rel of relationships) {
+    const from = rel.from_profile_id;
+    const to = rel.to_profile_id;
+
     if (rel.relationship_type === 'child') {
-      if (!childrenOf.has(rel.from_profile_id)) childrenOf.set(rel.from_profile_id, []);
-      childrenOf.get(rel.from_profile_id)!.push(rel.to_profile_id);
-    }
-    if (rel.relationship_type === 'parent') {
-      if (!parentsOf.has(rel.from_profile_id)) parentsOf.set(rel.from_profile_id, []);
-      parentsOf.get(rel.from_profile_id)!.push(rel.to_profile_id);
-    }
-    if (rel.relationship_type === 'spouse') {
-      // Only store once per person
-      if (!spouseOf.has(rel.from_profile_id)) {
-        spouseOf.set(rel.from_profile_id, rel.to_profile_id);
+      // from is Parent, to is Child
+      if (!childrenOf.has(from)) childrenOf.set(from, []);
+      if (!childrenOf.get(from)!.includes(to)) childrenOf.get(from)!.push(to);
+      
+      if (!parentsOf.has(to)) parentsOf.set(to, []);
+      if (!parentsOf.get(to)!.includes(from)) parentsOf.get(to)!.push(from);
+    } else if (rel.relationship_type === 'parent') {
+      // from is Child, to is Parent
+      if (!childrenOf.has(to)) childrenOf.set(to, []);
+      if (!childrenOf.get(to)!.includes(from)) childrenOf.get(to)!.push(from);
+      
+      if (!parentsOf.has(from)) parentsOf.set(from, []);
+      if (!parentsOf.get(from)!.includes(to)) parentsOf.get(from)!.push(to);
+    } else if (rel.relationship_type === 'spouse') {
+      // from relates as spouse to to
+      if (!spouseOf.has(from)) {
+        spouseOf.set(from, to);
+      }
+      // Also ensure reverse spouse mapping exists for easier lookup
+      if (!spouseOf.has(to)) {
+        spouseOf.set(to, from);
       }
     }
   }
@@ -169,6 +182,10 @@ export function buildD3Tree(
   };
 
   // ── Ancestors tree (synthetic root → parents → grandparents …) ──
+  const getAllParents = (profileId: string) => {
+    return parentsOf.get(profileId) ?? [];
+  };
+
   const buildAncestors = (id: string, visited = new Set<string>()): D3TreeNode | null => {
     if (visited.has(id)) return null;
     visited.add(id);
@@ -176,32 +193,18 @@ export function buildD3Tree(
     const profile = profileMap.get(id);
     if (!profile) return null;
 
-    const parents = (parentsOf.get(id) ?? [])
+    const parents = getAllParents(id)
       .map((pid) => buildAncestors(pid, new Set(visited)))
       .filter(Boolean) as D3TreeNode[];
 
     return {
-      ...toNode(profile),
+      ...toNode(profile, undefined, true),
       children: parents.length ? parents : undefined,
     };
   };
 
-  const descendants = buildDescendants(rootId);
-
-  // Ancestors: we need a synthetic dummy root that wraps the root's parents,
-  // matching the existing tree.tsx convention of 'main-1-ancestors-root'.
-  const rootParentIds = parentsOf.get(rootId) ?? [];
-  const ancestorChildren = rootParentIds
-    .map((pid) => buildAncestors(pid))
-    .filter(Boolean) as D3TreeNode[];
-
-  const ancestors: D3TreeNode = {
-    id: 'main-1-ancestors-root',
-    name: 'dummy-root-for-parents',
-    relativeId: rootId,
-    relativeName: profileMap.get(rootId)?.full_name ?? 'Current User',
-    children: ancestorChildren.length ? ancestorChildren : undefined,
-  };
+  const descendants = buildDescendants(rootId) || { id: rootId, name: '', children: [] };
+  const ancestors = buildAncestors(rootId) || { id: rootId, name: '', children: [] };
 
   return { descendants, ancestors };
 }
@@ -262,15 +265,16 @@ export async function addMember(
     if (relationType === 'spouse') {
       const { data: children } = await supabase
         .from('relationships')
-        .select('to_profile_id')
-        .eq('from_profile_id', relativeId)
+        .select('*')
+        .or(`from_profile_id.eq.${relativeId},to_profile_id.eq.${relativeId}`)
         .eq('relationship_type', 'child');
 
       if (children) {
         for (const c of children) {
+          const childId = c.from_profile_id === relativeId ? c.to_profile_id : c.from_profile_id;
           relsToInsert.push(
-            { from_profile_id: newId, to_profile_id: c.to_profile_id, relationship_type: 'child', created_by: createdBy },
-            { from_profile_id: c.to_profile_id, to_profile_id: newId, relationship_type: 'parent', created_by: createdBy }
+            { from_profile_id: newId, to_profile_id: childId, relationship_type: 'child', created_by: createdBy },
+            { from_profile_id: childId, to_profile_id: newId, relationship_type: 'parent', created_by: createdBy }
           );
         }
       }
@@ -280,15 +284,16 @@ export async function addMember(
     if (relationType === 'child') {
       const { data: spouses } = await supabase
         .from('relationships')
-        .select('to_profile_id')
-        .eq('from_profile_id', relativeId)
+        .select('*')
+        .or(`from_profile_id.eq.${relativeId},to_profile_id.eq.${relativeId}`)
         .eq('relationship_type', 'spouse');
 
       if (spouses) {
         for (const s of spouses) {
+          const spouseId = s.from_profile_id === relativeId ? s.to_profile_id : s.from_profile_id;
           relsToInsert.push(
-            { from_profile_id: s.to_profile_id, to_profile_id: newId, relationship_type: 'child', created_by: createdBy },
-            { from_profile_id: newId, to_profile_id: s.to_profile_id, relationship_type: 'parent', created_by: createdBy }
+            { from_profile_id: spouseId, to_profile_id: newId, relationship_type: 'child', created_by: createdBy },
+            { from_profile_id: newId, to_profile_id: spouseId, relationship_type: 'parent', created_by: createdBy }
           );
         }
       }

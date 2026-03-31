@@ -25,7 +25,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Feather } from '@expo/vector-icons';
 
 const NODE_SIZE = 76;
-const NODE_SPACING_X = 220;
+const NODE_SPACING_X = 320;
 const NODE_SPACING_Y = 160;
 
 type ButtonPos = 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT';
@@ -34,12 +34,14 @@ function getButtonPosition(
   isOldestAncestor: boolean,
   isLeafDescendant: boolean,
   isSpouse: boolean,
+  hasSpouse: boolean,
   nodeX: number,
   originX: number
 ): ButtonPos {
   if (isOldestAncestor) return 'TOP';
   if (isLeafDescendant) return 'BOTTOM';
   if (isSpouse) return 'RIGHT';
+  if (hasSpouse) return 'LEFT';
   if (nodeX < originX) return 'LEFT';
   return 'RIGHT';
 }
@@ -161,9 +163,10 @@ export default function TreeScreen() {
     const ancTreeLayout = d3.tree<D3TreeNode>().nodeSize([NODE_SPACING_X, NODE_SPACING_Y]);
     const ancLayout = ancTreeLayout(ancRoot);
 
-    const parents = ancLayout.descendants().filter((node) => node.data.id !== 'main-1-ancestors-root');
+    // Skip the root user in the ancestor tree if they are already the root of descendants
+    const parents = ancLayout.descendants().filter((node) => node.depth > 0);
     setAncestorNodes(parents);
-    setAncestorLinks(ancLayout.links());
+    setAncestorLinks(ancLayout.links().filter(l => l.source.depth > 0 || l.target.depth > 0));
   }, [rawDescendants, rawAncestors, rootProfileId]);
 
   const contentWidth = 2000;
@@ -340,21 +343,20 @@ export default function TreeScreen() {
                 const midY = (sourceY + targetY) / 2;
 
                 const d = `M${sourceX},${sourceY} L${sourceX},${midY} L${targetX},${midY} L${targetX},${targetY}`;
-                return <Path key={`desc-link-${index}`} d={d} fill="none" stroke="#d1d5db" strokeWidth="2" />;
+                return <Path key={`desc-link-${link.source.data.id}-${link.target.data.id}-${index}`} d={d} fill="none" stroke="#d1d5db" strokeWidth="2" />;
               })}
 
               {ancestorLinks.map((link, index) => {
-                const targetHasSpouse = !!link.target.data.spouse;
                 const sourceX = originX + link.source.x + treeOffsetX;
                 const sourceY = originY - link.source.y + treeOffsetY - 38;
 
-                const targetX = originX + link.target.x + treeOffsetX + (targetHasSpouse ? 66 : 0);
+                const targetX = originX + link.target.x + treeOffsetX;
                 const targetY = originY - link.target.y + treeOffsetY + 38;
 
                 const midY = (sourceY + targetY) / 2;
 
                 const d = `M${sourceX},${sourceY} L${sourceX},${midY} L${targetX},${midY} L${targetX},${targetY}`;
-                return <Path key={`anc-link-${index}`} d={d} fill="none" stroke="#d1d5db" strokeWidth="2" />;
+                return <Path key={`anc-link-${link.source.data.id}-${link.target.data.id}-${index}`} d={d} fill="none" stroke="#d1d5db" strokeWidth="2" />;
               })}
             </Svg>
 
@@ -364,7 +366,7 @@ export default function TreeScreen() {
               const nodeY = originY + y + treeOffsetY;
 
               const isLeaf = !node.children || node.children.length === 0;
-              const pos = getButtonPosition(false, isLeaf, false, nodeX, originX);
+              const pos = getButtonPosition(false, isLeaf, false, !!data.spouse, nodeX, originX);
               let bx = 0, by = 0;
               if (pos === 'TOP') by = -62;
               if (pos === 'BOTTOM') by = 86; // Ensures uniform gap between name text and button
@@ -372,15 +374,15 @@ export default function TreeScreen() {
               if (pos === 'RIGHT') bx = 62;
 
               return (
-                <View key={`desc-${data.id}`}>
+                <View key={`desc-${data.id}-${node.x}-${node.y}`}>
                   <PersonNode data={data} nodeX={nodeX} nodeY={nodeY} onPress={() => router.push(`/member/${data.id}`)} />
-                  <PlusButton cx={nodeX + bx} cy={nodeY + by} onPress={() => router.push('/member/add')} />
+                  <PlusButton cx={nodeX + bx} cy={nodeY + by} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.id, relativeName: data.name } })} />
 
                   {data.spouse && (
                     <>
                       <View style={{ position: 'absolute', left: nodeX + NODE_SIZE / 2, top: nodeY - 1, width: 56, height: 2, backgroundColor: '#d1d5db', zIndex: 1 }} />
                       <PersonNode data={data.spouse} nodeX={nodeX + 132} nodeY={nodeY} onPress={() => router.push(`/member/${data.spouse!.id}`)} />
-                      <PlusButton cx={nodeX + 132 + 62} cy={nodeY} onPress={() => router.push('/member/add')} />
+                      <PlusButton cx={nodeX + 132 + 62} cy={nodeY} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.spouse!.id, relativeName: data.spouse!.name } })} />
                     </>
                   )}
                 </View>
@@ -393,7 +395,7 @@ export default function TreeScreen() {
               const nodeY = originY - y + treeOffsetY;
 
               const isOldest = !node.children || node.children.length === 0;
-              const pos = getButtonPosition(isOldest, false, false, nodeX, originX);
+              const pos = getButtonPosition(isOldest, false, false, !!data.spouse, nodeX, originX);
               let bx = 0, by = 0;
               if (pos === 'TOP') by = -62;
               if (pos === 'BOTTOM') by = 86; 
@@ -401,17 +403,15 @@ export default function TreeScreen() {
               if (pos === 'RIGHT') bx = 62;
 
               return (
-                <View key={`anc-${data.id}`}>
-                  <PersonNode data={data} nodeX={nodeX} nodeY={nodeY} onPress={() => router.push(`/member/${data.id}`)} />
-                  <PlusButton cx={nodeX + bx} cy={nodeY + by} onPress={() => router.push('/member/add')} />
-
-                  {data.spouse && (
-                    <>
-                      <View style={{ position: 'absolute', left: nodeX + NODE_SIZE / 2, top: nodeY - 1, width: 56, height: 2, backgroundColor: '#d1d5db', zIndex: 1 }} />
-                      <PersonNode data={data.spouse} nodeX={nodeX + 132} nodeY={nodeY} onPress={() => router.push(`/member/${data.spouse!.id}`)} />
-                      <PlusButton cx={nodeX + 132 + 62} cy={nodeY} onPress={() => router.push('/member/add')} />
-                    </>
-                  )}
+                <View key={`anc-${data.id}-${node.x}-${node.y}`}>
+                  {/* We pass a modified data object without the spouse to avoid double rendering in the ancestor tree */}
+                  <PersonNode 
+                    data={{ ...data, spouse: undefined }} 
+                    nodeX={nodeX} 
+                    nodeY={nodeY} 
+                    onPress={() => router.push(`/member/${data.id}`)} 
+                  />
+                  <PlusButton cx={nodeX + bx} cy={nodeY + by} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.id, relativeName: data.name } })} />
                 </View>
               );
             })}

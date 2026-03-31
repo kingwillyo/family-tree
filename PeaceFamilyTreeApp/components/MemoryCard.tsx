@@ -13,6 +13,7 @@ export interface MemoryData {
   };
   content: {
     image?: string;
+    images?: string[];
     date?: string;
     location?: string;
     title?: string;
@@ -57,18 +58,96 @@ export default function MemoryCard({ memory }: MemoryCardProps) {
         </View>
 
         {/* Image Content */}
-        <View className="mb-4 overflow-hidden rounded-2xl bg-gray-100">
-          <Image
-            source={{ uri: memory.content.image }}
-            className="h-[220px] w-full"
-            resizeMode="cover"
-          />
-        </View>
+        {(() => {
+          const images =
+            memory.content.images || (memory.content.image ? [memory.content.image] : []);
+          if (images.length === 0) return null;
+
+          if (images.length === 1) {
+            return (
+              <View className="mb-4 overflow-hidden rounded-2xl bg-gray-100">
+                <Image
+                  source={{ uri: images[0] }}
+                  className="h-[220px] w-full"
+                  resizeMode="cover"
+                />
+              </View>
+            );
+          }
+
+          if (images.length === 2) {
+            return (
+              <View className="mb-4 h-[220px] flex-row gap-2 overflow-hidden rounded-2xl">
+                <View className="flex-1 bg-gray-100">
+                  <Image source={{ uri: images[0] }} className="h-full w-full" resizeMode="cover" />
+                </View>
+                <View className="flex-1 bg-gray-100">
+                  <Image source={{ uri: images[1] }} className="h-full w-full" resizeMode="cover" />
+                </View>
+              </View>
+            );
+          }
+
+          if (images.length === 3) {
+            return (
+              <View className="mb-4 h-[240px] flex-row gap-2 overflow-hidden rounded-2xl">
+                <View className="flex-[2] bg-gray-100">
+                  <Image source={{ uri: images[0] }} className="h-full w-full" resizeMode="cover" />
+                </View>
+                <View className="flex-1 flex-col gap-2">
+                  <View className="flex-1 bg-gray-100">
+                    <Image
+                      source={{ uri: images[1] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
+                  </View>
+                  <View className="flex-1 bg-gray-100">
+                    <Image
+                      source={{ uri: images[2] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
+                  </View>
+                </View>
+              </View>
+            );
+          }
+
+          // 4 or more
+          return (
+            <View className="mb-4 h-[240px] flex-col gap-2 overflow-hidden rounded-2xl">
+              <View className="flex-1 flex-row gap-2">
+                <View className="flex-1 bg-gray-100">
+                  <Image source={{ uri: images[0] }} className="h-full w-full" resizeMode="cover" />
+                </View>
+                <View className="flex-1 bg-gray-100">
+                  <Image source={{ uri: images[1] }} className="h-full w-full" resizeMode="cover" />
+                </View>
+              </View>
+              <View className="flex-1 flex-row gap-2">
+                <View className="flex-1 bg-gray-100">
+                  <Image source={{ uri: images[2] }} className="h-full w-full" resizeMode="cover" />
+                </View>
+                <View className="relative flex-1 bg-gray-100">
+                  <Image source={{ uri: images[3] }} className="h-full w-full" resizeMode="cover" />
+                  {images.length > 4 && (
+                    <View className="absolute inset-0 items-center justify-center bg-black/50">
+                      <Text className="text-[20px] font-bold text-white">+{images.length - 4}</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+            </View>
+          );
+        })()}
 
         {/* Post Info */}
         <View className="mb-2 flex-row items-center">
           <Feather name="calendar" size={12} color="#6b7280" />
-          <Text className="ml-1.5 text-[13px] font-medium text-gray-500">{memory.content.date}</Text>
+          <Text className="ml-1.5 text-[13px] font-medium text-gray-500">
+            {memory.content.date}
+          </Text>
           <Text className="mx-2 text-[13px] text-gray-400">•</Text>
           <Feather name="map-pin" size={12} color="#6b7280" />
           <Text className="ml-1.5 text-[13px] font-medium text-gray-500">
@@ -136,9 +215,7 @@ export default function MemoryCard({ memory }: MemoryCardProps) {
               <Text className="text-[10px] font-bold text-gray-500">
                 {memory.content.currentTime}
               </Text>
-              <Text className="text-[10px] font-bold text-gray-400">
-                {memory.content.duration}
-              </Text>
+              <Text className="text-[10px] font-bold text-gray-400">{memory.content.duration}</Text>
             </View>
           </View>
         </View>
