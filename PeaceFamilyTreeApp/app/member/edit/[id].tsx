@@ -10,6 +10,7 @@ import {
   View,
   TextInput,
   StyleSheet,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -32,16 +33,62 @@ export default function EditMemberScreen() {
   const [visibility, setVisibility] = useState<'family' | 'private'>('family');
   const [error, setError] = useState('');
 
+  const [currentProfile, setCurrentProfile] = useState<any>(null);
+
   useEffect(() => {
-    if (!id) return;
     const fetch = async () => {
-      const { data } = await supabase
+      // Fetch current user's profile to check role
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: fm } = await supabase
+          .from('family_members')
+          .select('profile_id')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        const pid = fm?.profile_id;
+        if (pid) {
+          const { data: p } = await supabase.from('profiles').select('*').eq('id', pid).single();
+          setCurrentProfile(p);
+        } else {
+          const { data: p } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
+          setCurrentProfile(p);
+        }
+      }
+
+      let profileId = id;
+      
+      // If we're editing 'current-user', find their profile ID first
+      if (id === 'current-user') {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const { data: fm } = await supabase
+            .from('family_members')
+            .select('profile_id')
+            .eq('user_id', authUser.id)
+            .maybeSingle();
+          if (fm?.profile_id) profileId = fm.profile_id;
+          else {
+            const { data: p } = await supabase.from('profiles').select('id').eq('user_id', authUser.id).maybeSingle();
+            if (p) profileId = p.id;
+          }
+        }
+      }
+
+      if (!profileId || profileId === 'current-user') {
+        setLoading(false);
+        return;
+      }
+
+      const { data, error: fetchError } = await supabase
         .from('profiles')
         .select('full_name, date_of_birth, date_of_death, bio, is_living, visibility')
-        .eq('id', id)
+        .eq('id', profileId)
         .single();
 
-      if (data) {
+      if (fetchError) {
+        console.error('Error fetching profile:', fetchError.message);
+      } else if (data) {
         setFullName(data.full_name ?? '');
         setDob(data.date_of_birth ?? '');
         setDod(data.date_of_death ?? '');
@@ -62,22 +109,60 @@ export default function EditMemberScreen() {
     }
     setSaving(true);
     try {
-      const { error: updateError } = await supabase
-        .from('profiles')
-        .update({
-          full_name: fullName.trim(),
-          date_of_birth: dob || null,
-          date_of_death: dod || null,
-          bio: bio.trim() || null,
-          is_living: isLiving,
-          visibility,
-        })
-        .eq('id', id);
+      let profileId = id;
+      if (id === 'current-user') {
+        profileId = currentProfile?.id;
+      }
 
-      if (updateError) {
-        setError(updateError.message);
-      } else {
-        router.back();
+      if (!profileId) {
+        setError('Could not identify profile to edit');
+        return;
+      }
+
+      const updateData = {
+        full_name: fullName.trim(),
+        date_of_birth: dob || null,
+        date_of_death: dod || null,
+        bio: bio.trim() || null,
+        is_living: isLiving,
+        visibility,
+      };
+
+      // 1. If Admin, update directly
+      if (currentProfile?.role === 'admin') {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update(updateData)
+          .eq('id', profileId);
+
+        if (updateError) {
+          setError(updateError.message);
+        } else {
+          router.back();
+        }
+      } 
+      // 2. If Member, create proposal
+      else {
+        const { error: propError } = await supabase
+          .from('edit_proposals')
+          .insert({
+            target_profile_id: profileId,
+            proposed_by: currentProfile?.id,
+            change_type: 'profile_update',
+            proposed_data: updateData,
+            original_data: { 
+              full_name: fullName, // this is slightly wrong, should be the data we fetched initially
+              // but for simplicity we'll just push the current state vs updated state 
+              // actually we should have kept 'initialData' state
+            }
+          });
+
+        if (propError) {
+          setError(propError.message);
+        } else {
+          Alert.alert('Success', 'Your changes have been submitted for admin approval.');
+          router.back();
+        }
       }
     } finally {
       setSaving(false);

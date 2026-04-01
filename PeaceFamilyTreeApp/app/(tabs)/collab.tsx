@@ -1,63 +1,80 @@
-import React from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
+import { 
+  fetchProposals, 
+  fetchCurrentProfile, 
+  updateProposalStatus, 
+  EditProposal, 
+  Profile 
+} from '../../lib/treeService';
 
-// Mock Data targeting the precise design from the reference image
-const mockEditsData = [
-  {
-    id: '1',
-    author: {
-      name: 'Sarah Jenkins',
-      avatar:
-        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop',
-    },
-    timeString: '2H AGO',
-    actionText: 'Edited',
-    actionTarget: "Joseph Miller's",
-    actionField: 'Birth Date',
-    diff: {
-      type: 'was-to',
-      was: 'June 12, 1945',
-      to: 'June 12, 1944',
-    },
-  },
-  {
-    id: '2',
-    author: {
-      name: 'David Chen',
-      avatar:
-        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=150&auto=format&fit=crop',
-    },
-    timeString: '5H AGO',
-    actionText: 'Added',
-    actionTarget: 'Death Place',
-    actionField: 'for Eleanor Rigby',
-    diff: {
-      type: 'new',
-      value: 'Liverpool, United Kingdom',
-    },
-  },
-  {
-    id: '3',
-    author: {
-      name: 'Michael Scott',
-      avatar:
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=150&auto=format&fit=crop',
-    },
-    timeString: 'YESTERDAY',
-    actionText: 'Updated',
-    actionTarget: 'Marriage Status',
-    actionField: '',
-    diff: {
-      type: 'was-to',
-      was: 'Single',
-      to: 'Married',
-    },
-  },
-];
+// ─── Helpers ──────────────────────────────────────────────────────────────
+
+function getTimeAgo(dateString: string): string {
+  const now = new Date();
+  const then = new Date(dateString);
+  const diffMs = now.getTime() - then.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHrs = Math.floor(diffMins / 60);
+  const diffDays = Math.floor(diffHrs / 24);
+
+  if (diffMins < 60) return `${diffMins}M AGO`;
+  if (diffHrs < 24) return `${diffHrs}H AGO`;
+  return `${diffDays}D AGO`;
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────
 
 export default function CollabScreen() {
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
+  const [proposals, setProposals] = useState<EditProposal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    const [p, props] = await Promise.all([
+      fetchCurrentProfile(),
+      fetchProposals('pending'),
+    ]);
+    setCurrentProfile(p);
+    setProposals(props);
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const handleAction = async (proposal: EditProposal, status: 'approved' | 'rejected') => {
+    if (!currentProfile || currentProfile.role !== 'admin') {
+      Alert.alert('Permission Denied', 'Only admins can review proposals.');
+      return;
+    }
+
+    setProcessingId(proposal.id);
+    const res = await updateProposalStatus(proposal, status, currentProfile.id);
+    
+    if (res.error) {
+      Alert.alert('Error', res.error);
+    } else {
+      setProposals((prev) => prev.filter((p) => p.id !== proposal.id));
+    }
+    setProcessingId(null);
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView className="flex-1 bg-[#fcFAF8] items-center justify-center">
+        <ActivityIndicator size="large" color="#059669" />
+      </SafeAreaView>
+    );
+  }
+
+  const isAdmin = currentProfile?.role === 'admin';
+
   return (
     <SafeAreaView className="flex-1 bg-[#fcFAF8]" edges={['top']}>
       {/* Header */}
@@ -68,11 +85,14 @@ export default function CollabScreen() {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}>
+        
         {/* Summary Card */}
         <View className="mb-8 mt-2 px-6">
           <View className="w-full flex-row items-center justify-between rounded-[24px] border border-[#e5fad8] bg-[#f1fdec] px-6 py-8">
             <View>
-              <Text className="text-[42px] font-black leading-[48px] text-gray-900">14</Text>
+              <Text className="text-[42px] font-black leading-[48px] text-gray-900">
+                {proposals.length}
+              </Text>
               <Text className="mt-1 text-[14px] font-medium text-gray-500">Pending proposals</Text>
             </View>
             <View className="h-14 w-14 items-center justify-center rounded-full bg-[#32CD32] shadow-sm">
@@ -81,83 +101,156 @@ export default function CollabScreen() {
           </View>
         </View>
 
-        {/* Section Title */}
-        <View className="mb-4 flex-row items-center justify-between px-6">
-          <Text className="flex-1 text-[12px] font-bold uppercase tracking-widest text-gray-500">
-            Recent Edits
-          </Text>
-          <TouchableOpacity>
-            <Text className="text-[13px] font-bold text-[#32CD32]">View All</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Feed */}
-        <View className="px-6">
-          {mockEditsData.map((edit) => (
-            <View key={edit.id} className="mb-4 rounded-[24px] border border-gray-100 bg-white p-5">
-              {/* Author Header */}
-              <View className="mb-5 flex-row items-center justify-between">
-                <View className="flex-1 flex-row items-center">
-                  <Image
-                    source={{ uri: edit.author.avatar }}
-                    className="mr-3 h-10 w-10 rounded-full bg-gray-200"
-                  />
-                  <View className="flex-1 pr-2">
-                    <Text className="text-[15px] font-bold text-gray-900">{edit.author.name}</Text>
-                    <Text className="mt-0.5 text-[13px] text-gray-500" numberOfLines={1}>
-                      {edit.actionText}{' '}
-                      <Text className="font-bold text-[#32CD32]">{edit.actionTarget}</Text>
-                      {edit.actionField ? ` ${edit.actionField}` : ''}
-                    </Text>
-                  </View>
-                </View>
-                <Text className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                  {edit.timeString}
-                </Text>
-              </View>
-
-              {/* Diff Box */}
-              <View className="mb-4 rounded-[16px] bg-[#f8f9fa] p-4">
-                {edit.diff.type === 'was-to' ? (
-                  <View>
-                    <View className="mb-3 flex-row items-center justify-between">
-                      <Text className="text-[13px] font-medium text-gray-500">Was</Text>
-                      <Text className="text-[13px] font-medium text-gray-400">{edit.diff.was}</Text>
-                    </View>
-                    <View className="flex-row items-center justify-between">
-                      <Text className="text-[13px] font-bold text-gray-700">To</Text>
-                      <Text className="text-[14px] font-bold text-[#32CD32]">{edit.diff.to}</Text>
-                    </View>
-                  </View>
-                ) : (
-                  <View>
-                    <Text className="mb-2 text-[10px] font-bold uppercase tracking-widest text-gray-400">
-                      New Value
-                    </Text>
-                    <Text className="text-[14px] font-bold text-[#32CD32]">{edit.diff.value}</Text>
-                  </View>
-                )}
-              </View>
-
-              {/* Action Buttons */}
-              <View className="flex-row gap-x-3">
-                <TouchableOpacity className="flex-1 items-center justify-center rounded-full bg-[#111827] py-[14px]">
-                  <Text className="text-[14px] font-bold text-white">Approve</Text>
-                </TouchableOpacity>
-                <TouchableOpacity className="flex-1 items-center justify-center rounded-full bg-[#f3f4f6] py-[14px]">
-                  <Text className="text-[14px] font-bold text-gray-900">Reject</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          ))}
-
-          {/* Outro State */}
-          <View className="mt-4 items-center justify-center py-6 pb-12">
-            <Feather name="file-minus" size={32} color="#cbd5e1" className="mb-4" />
-            <Text className="text-[14px] font-medium text-[#94a3b8]">No more pending reviews</Text>
+        {!isAdmin ? (
+          <View className="px-6 items-center py-10">
+            <Feather name="shield" size={48} color="#cbd5e1" />
+            <Text className="mt-4 text-center text-gray-400">
+              You do not have admin permissions to review proposals.
+            </Text>
           </View>
-        </View>
+        ) : (
+          <>
+            {/* Section Title */}
+            <View className="mb-4 flex-row items-center justify-between px-6">
+              <Text className="flex-1 text-[12px] font-bold uppercase tracking-widest text-gray-500">
+                Pending Proposals
+              </Text>
+              <TouchableOpacity onPress={loadData}>
+                <Feather name="refresh-cw" size={14} color="#32CD32" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Feed */}
+            <View className="px-6">
+              {proposals.length === 0 ? (
+                <View className="mt-4 items-center justify-center py-10">
+                  <Feather name="file-minus" size={32} color="#cbd5e1" className="mb-4" />
+                  <Text className="text-[14px] font-medium text-[#94a3b8]">No pending reviews</Text>
+                </View>
+              ) : (
+                proposals.map((prop) => {
+                  const proposer = prop.proposer_profile;
+                  const target = prop.target_profile;
+                  const data = prop.proposed_data;
+                  const original = prop.original_data;
+
+                  // Simple logic to find the changed field for title
+                  // In a real app we'd have a more robust diffing summary
+                  const fieldName = prop.change_type === 'profile_update' ? 'Profile' : 'Info';
+
+                  return (
+                    <View key={prop.id} className="mb-4 rounded-[24px] border border-gray-100 bg-white p-5">
+                      {/* Proposer Header */}
+                      <View className="mb-5 flex-row items-center justify-between">
+                        <View className="flex-1 flex-row items-center">
+                          <View className="h-10 w-10 overflow-hidden rounded-full bg-gray-100 mr-3">
+                            {proposer?.avatar_url ? (
+                              <Image source={{ uri: proposer.avatar_url }} className="h-full w-full" />
+                            ) : (
+                              <View className="flex-1 items-center justify-center bg-orange-100">
+                                <Text className="text-sm font-bold text-orange-300">
+                                  {proposer?.full_name?.[0]?.toUpperCase() ?? '?'}
+                                </Text>
+                              </View>
+                            )}
+                          </View>
+                          <View className="flex-1 pr-2">
+                            <Text className="text-[15px] font-bold text-gray-900">
+                              {proposer?.full_name ?? 'Unknown User'}
+                            </Text>
+                            <Text className="mt-0.5 text-[13px] text-gray-500" numberOfLines={1}>
+                              Proposed changes for <Text className="font-bold text-[#32CD32]">{target?.full_name ?? 'Member'}</Text>
+                            </Text>
+                          </View>
+                        </View>
+                        <Text className="text-[10px] font-bold uppercase tracking-widest text-gray-400">
+                          {getTimeAgo(prop.created_at)}
+                        </Text>
+                      </View>
+
+                      {/* Data Box */}
+                      <View className="mb-4 rounded-[16px] bg-[#f8f9fa] p-4">
+                        {prop.change_type === 'profile_update' ? (
+                          <View>
+                            {Object.keys(data).map((key) => {
+                              const val = data[key];
+                              const label = key.replace(/_/g, ' ').toUpperCase();
+                              if (val === original?.[key]) return null;
+                              return (
+                                <View key={key} className="mb-3">
+                                  <Text className="text-[10px] font-bold text-gray-400 mb-1">{label}</Text>
+                                  <View className="flex-row items-center justify-between">
+                                    <Text className="text-[13px] text-gray-400 flex-1 mr-2" numberOfLines={1}>{String(original?.[key] ?? 'None')}</Text>
+                                    <Feather name="arrow-right" size={12} color="#cbd5e1" className="mx-2" />
+                                    <Text className="text-[13px] font-bold text-[#32CD32] flex-1 text-right" numberOfLines={1}>{String(val)}</Text>
+                                  </View>
+                                </View>
+                              );
+                            })}
+                          </View>
+                        ) : prop.change_type === 'timeline_add' ? (
+                          <View>
+                            <Text className="text-[10px] font-bold text-gray-400 mb-1 text-center">NEW TIMELINE EVENT</Text>
+                            <View className="items-center">
+                              <Text className="text-[16px] font-bold text-gray-900">{data.title}</Text>
+                              <Text className="text-[13px] font-semibold text-[#32CD32]">{data.year}</Text>
+                              {data.description ? (
+                                <Text className="mt-1 text-[13px] text-center text-gray-500" numberOfLines={2}>{data.description}</Text>
+                              ) : null}
+                            </View>
+                          </View>
+                        ) : prop.change_type === 'timeline_delete' ? (
+                          <View>
+                            <Text className="text-[10px] font-bold text-red-400 mb-1 text-center">DELETE TIMELINE EVENT</Text>
+                            <View className="items-center">
+                              <Text className="text-[16px] font-bold text-gray-400 line-through">{data.title}</Text>
+                              <Text className="text-[13px] font-semibold text-gray-400">{data.year}</Text>
+                            </View>
+                          </View>
+                        ) : prop.change_type === 'avatar_update' ? (
+                          <View className="items-center">
+                            <Text className="text-[10px] font-bold text-gray-400 mb-2">NEW PROFILE PHOTO</Text>
+                            <View className="h-20 w-20 overflow-hidden rounded-full border-2 border-[#e5fad8] bg-gray-100">
+                              <Image source={{ uri: data.url }} className="h-full w-full" />
+                            </View>
+                          </View>
+                        ) : (
+                          <View>
+                            <Text className="text-[14px] font-bold text-[#32CD32]">
+                              {JSON.stringify(data)}
+                            </Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {/* Action Buttons */}
+                      <View className="flex-row gap-x-3">
+                        <TouchableOpacity 
+                          onPress={() => handleAction(prop, 'approved')}
+                          disabled={!!processingId}
+                          className="flex-1 flex-row items-center justify-center rounded-full bg-[#111827] py-[14px]">
+                          {processingId === prop.id ? (
+                            <ActivityIndicator size="small" color="white" />
+                          ) : (
+                            <Text className="text-[14px] font-bold text-white">Approve</Text>
+                          )}
+                        </TouchableOpacity>
+                        <TouchableOpacity 
+                          onPress={() => handleAction(prop, 'rejected')}
+                          disabled={!!processingId}
+                          className="flex-1 items-center justify-center rounded-full bg-[#f3f4f6] py-[14px]">
+                          <Text className="text-[14px] font-bold text-gray-900">Reject</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 }
+

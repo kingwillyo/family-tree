@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import * as FileSystem from 'expo-file-system/legacy';
 import { D3TreeNode } from '../constants/mockTreeData';
 
 // ─────────────────────────────────────────────
@@ -16,8 +17,26 @@ export interface Profile {
   gender: 'male' | 'female' | null;
   is_living: boolean;
   visibility: string;
+  bio: string | null;
+  role: 'admin' | 'member';
   created_by: string | null;
   created_at: string;
+}
+
+export interface EditProposal {
+  id: string;
+  target_profile_id: string;
+  proposed_by: string;
+  change_type: string;
+  proposed_data: any;
+  original_data: any;
+  status: 'pending' | 'approved' | 'rejected';
+  reviewed_by: string | null;
+  reviewed_at: string | null;
+  created_at: string;
+  // Included in joins
+  target_profile?: Profile;
+  proposer_profile?: Profile;
 }
 
 export interface Relationship {
@@ -153,6 +172,7 @@ export function buildD3Tree(
     role: role ?? '',
     dates: formatDates(p),
     imageUrl: p.avatar_url ?? undefined,
+    admin: p.role === 'admin',
     spouse: (includeSpouse && spouseOf.has(p.id))
       ? (() => {
           const sp = profileMap.get(spouseOf.get(p.id)!);
@@ -368,4 +388,408 @@ export async function fetchMemberDetail(profileId: string): Promise<MemberDetail
     .filter(Boolean) as Array<Relationship & { relatedProfile: Profile }>;
 
   return { profile, relationships: enriched };
+}
+
+// ─────────────────────────────────────────────
+// 6. Fetch a single profile by ID
+// ─────────────────────────────────────────────
+
+export async function fetchProfileById(profileId: string): Promise<Profile | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', profileId)
+    .single();
+  if (error || !data) return null;
+  return data as Profile;
+}
+
+// ─────────────────────────────────────────────
+// 7. Timeline Events
+// ─────────────────────────────────────────────
+
+export interface TimelineEvent {
+  id: string;
+  profile_id: string;
+  icon: string;
+  year: string;
+  title: string;
+  date_label: string | null;
+  description: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface AddTimelineEventInput {
+  icon: string;
+  year: string;
+  title: string;
+  dateLabel?: string;
+  description?: string;
+}
+
+export async function fetchTimelineEvents(profileId: string): Promise<TimelineEvent[]> {
+  const { data, error } = await supabase
+    .from('timeline_events')
+    .select('*')
+    .eq('profile_id', profileId)
+    .order('year', { ascending: true });
+  if (error) {
+    console.error('fetchTimelineEvents error:', error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+export async function addTimelineEvent(
+  input: AddTimelineEventInput,
+  profileId: string,
+  userId: string
+): Promise<{ id: string } | { error: string }> {
+  const { data, error } = await supabase
+    .from('timeline_events')
+    .insert({
+      profile_id: profileId,
+      icon: input.icon,
+      year: input.year,
+      title: input.title,
+      date_label: input.dateLabel ?? null,
+      description: input.description ?? null,
+      created_by: userId,
+    })
+    .select('id')
+    .single();
+  if (error || !data) return { error: error?.message ?? 'Failed to add event' };
+  return { id: data.id };
+}
+
+export async function deleteTimelineEvent(eventId: string): Promise<{ error?: string }> {
+  const { error } = await supabase.from('timeline_events').delete().eq('id', eventId);
+  return error ? { error: error.message } : {};
+}
+
+// ─────────────────────────────────────────────
+// 8. Member Media (from memories table)
+// ─────────────────────────────────────────────
+
+export interface Memory {
+  id: string;
+  author_profile_id: string | null;
+  created_by: string | null;
+  type: 'story' | 'photo' | 'audio';
+  title: string | null;
+  body: string | null;
+  location: string | null;
+  image_urls: string[];
+  audio_url: string | null;
+  created_at: string;
+}
+
+export async function fetchMemberMedia(profileId: string): Promise<Memory[]> {
+  const { data, error } = await supabase
+    .from('memories')
+    .select('*')
+    .eq('author_profile_id', profileId)
+    .in('type', ['photo', 'audio'])
+    .order('created_at', { ascending: false });
+  if (error) {
+    console.error('fetchMemberMedia error:', error.message);
+    return [];
+  }
+  return data ?? [];
+}
+
+export async function uploadMemberMedia(
+  localUri: string,
+  userId: string,
+  profileId: string
+): Promise<{ url: string } | { error: string }> {
+  try {
+    const base64 = await FileSystem.readAsStringAsync(localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const ext = localUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const mimeType = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
+    const path = `${profileId}/${Date.now()}.${ext}`;
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+
+    const { error: uploadError } = await supabase.storage
+      .from('member-media')
+      .upload(path, bytes, { contentType: mimeType, upsert: false });
+    if (uploadError) return { error: uploadError.message };
+
+    const { data: urlData } = supabase.storage.from('member-media').getPublicUrl(path);
+    const publicUrl = urlData.publicUrl;
+
+    const { error: dbError } = await supabase.from('memories').insert({
+      author_profile_id: profileId,
+      type: 'photo',
+      image_urls: [publicUrl],
+      created_by: userId,
+    });
+    if (dbError) return { error: dbError.message };
+
+    return { url: publicUrl };
+  } catch (err: any) {
+    return { error: err?.message ?? 'Upload failed' };
+  }
+}
+
+// ─────────────────────────────────────────────
+// 9. Upload / update avatar
+// ─────────────────────────────────────────────
+
+export async function uploadAvatar(
+  localUri: string,
+  userId: string,
+  profileId: string
+): Promise<{ url: string } | { error: string }> {
+  try {
+    const base64 = await FileSystem.readAsStringAsync(localUri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
+    const ext = localUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+    const mimeType = ext === 'png' ? 'image/png' : 'image/jpeg';
+    const path = `${profileId}/avatar.${ext}`;
+    const binaryString = atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+
+    const { error: uploadError } = await supabase.storage
+      .from('member-avatars')
+      .upload(path, bytes, { contentType: mimeType, upsert: true });
+    if (uploadError) return { error: uploadError.message };
+
+    const { data: urlData } = supabase.storage.from('member-avatars').getPublicUrl(path);
+    // Append a cache-buster so the image view refreshes
+    const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+
+    const { error: dbError } = await supabase
+      .from('profiles')
+      .update({ avatar_url: urlData.publicUrl })
+      .eq('id', profileId);
+    if (dbError) return { error: dbError.message };
+
+    return { url: publicUrl };
+  } catch (err: any) {
+    return { error: err?.message ?? 'Upload failed' };
+  }
+}
+
+// ─────────────────────────────────────────────
+// 10. Member stats
+// ─────────────────────────────────────────────
+
+export interface MemberStats {
+  memoriesCount: number;
+  eventsCount: number;
+  childrenCount: number;
+  connectionsCount: number;
+}
+
+export async function fetchMemberStats(profileId: string): Promise<MemberStats> {
+  const [memoriesRes, eventsRes, relsRes] = await Promise.all([
+    supabase
+      .from('memories')
+      .select('id', { count: 'exact', head: true })
+      .eq('author_profile_id', profileId),
+    supabase
+      .from('timeline_events')
+      .select('id', { count: 'exact', head: true })
+      .eq('profile_id', profileId),
+    supabase
+      .from('relationships')
+      .select('relationship_type')
+      .or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`),
+  ]);
+
+  const rels = relsRes.data ?? [];
+  // Normalise: count each unique related person once as a child
+  const childrenCount = rels.filter((r) => {
+    // from→child means this profile is a parent of someone
+    return (
+      (r.relationship_type === 'child' && relsRes.data?.find((x) => x === r)) ||
+      r.relationship_type === 'child'
+    );
+  }).length;
+
+  // Count unique `child` type relationships where this profile IS the parent
+  const childRels = rels.filter((r) => r.relationship_type === 'child');
+
+  return {
+    memoriesCount: memoriesRes.count ?? 0,
+    eventsCount: eventsRes.count ?? 0,
+    childrenCount: childRels.length,
+    connectionsCount: rels.length,
+  };
+}
+
+// ─────────────────────────────────────────────
+// 11. Fetch connections (related profiles with type)
+// ─────────────────────────────────────────────
+
+export interface ProfileConnection {
+  profile: Profile;
+  relationshipType: 'parent' | 'child' | 'spouse';
+}
+
+export async function fetchMemberConnections(profileId: string): Promise<ProfileConnection[]> {
+  const { data: rels, error } = await supabase
+    .from('relationships')
+    .select('*')
+    .or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`);
+
+  if (error || !rels?.length) return [];
+
+  const relatedIds = [
+    ...new Set(
+      rels.flatMap((r) => [r.from_profile_id, r.to_profile_id]).filter((id) => id !== profileId)
+    ),
+  ];
+
+  const { data: profiles } = await supabase
+    .from('profiles')
+    .select('*')
+    .in('id', relatedIds);
+
+  const profileMap = new Map<string, Profile>((profiles ?? []).map((p) => [p.id, p]));
+
+  const seen = new Set<string>();
+  const result: ProfileConnection[] = [];
+
+  for (const rel of rels) {
+    const relatedId = rel.from_profile_id === profileId ? rel.to_profile_id : rel.from_profile_id;
+    if (seen.has(relatedId)) continue;
+    seen.add(relatedId);
+    const profile = profileMap.get(relatedId);
+    if (!profile) continue;
+    let type = rel.relationship_type as 'parent' | 'child' | 'spouse';
+    // Normalise direction: what is the related person TO this profile?
+    if (rel.to_profile_id === profileId && type !== 'spouse') {
+      type = INVERSE[type];
+    }
+    result.push({ profile, relationshipType: type });
+  }
+
+  return result;
+}
+
+// ─────────────────────────────────────────────
+// 12. Collaboration / Proposals
+// ─────────────────────────────────────────────
+
+export async function fetchCurrentProfile(): Promise<Profile | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  
+  // Try family_members first
+  const { data: fm } = await supabase
+    .from('family_members')
+    .select('profile_id')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  
+  const pid = fm?.profile_id;
+  if (pid) return fetchProfileById(pid);
+
+  // Fallback to profiles table direct
+  const { data: p } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  
+  return p as Profile | null;
+}
+
+export async function createProposal(
+  targetProfileId: string,
+  proposedByProfileId: string,
+  changeType: string,
+  proposedData: any,
+  originalData?: any
+): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from('edit_proposals')
+    .insert({
+      target_profile_id: targetProfileId,
+      proposed_by: proposedByProfileId,
+      change_type: changeType,
+      proposed_data: proposedData,
+      original_data: originalData || null,
+    });
+  return error ? { error: error.message } : {};
+}
+
+export async function fetchProposals(status: 'pending' | 'approved' | 'rejected' | 'all' = 'pending'): Promise<EditProposal[]> {
+  let query = supabase
+    .from('edit_proposals')
+    .select(`
+      *,
+      target_profile:profiles!target_profile_id(*),
+      proposer_profile:profiles!proposed_by(*)
+    `)
+    .order('created_at', { ascending: false });
+
+  if (status !== 'all') {
+    query = query.eq('status', status);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    console.error('Error fetching proposals:', error.message);
+    return [];
+  }
+  return data as EditProposal[];
+}
+
+export async function updateProposalStatus(
+  proposal: EditProposal,
+  status: 'approved' | 'rejected',
+  adminProfileId: string
+): Promise<{ error?: string }> {
+  if (status === 'approved') {
+    // Apply the changes to the target profile
+    if (proposal.change_type === 'profile_update') {
+      const { error: applyError } = await supabase
+        .from('profiles')
+        .update(proposal.proposed_data)
+        .eq('id', proposal.target_profile_id);
+      
+      if (applyError) return { error: applyError.message };
+    } else if (proposal.change_type === 'timeline_add') {
+      const { error: applyError } = await supabase
+        .from('timeline_events')
+        .insert({
+          ...proposal.proposed_data,
+          profile_id: proposal.target_profile_id,
+        });
+      if (applyError) return { error: applyError.message };
+    } else if (proposal.change_type === 'avatar_update') {
+      const { error: applyError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: proposal.proposed_data.url })
+        .eq('id', proposal.target_profile_id);
+      if (applyError) return { error: applyError.message };
+    } else if (proposal.change_type === 'timeline_delete') {
+      const { error: applyError } = await supabase
+        .from('timeline_events')
+        .delete()
+        .eq('id', proposal.proposed_data.event_id);
+      if (applyError) return { error: applyError.message };
+    }
+  }
+
+  const { error } = await supabase
+    .from('edit_proposals')
+    .update({ 
+      status, 
+      reviewed_by: adminProfileId, 
+      reviewed_at: new Date().toISOString() 
+    })
+    .eq('id', proposal.id);
+    
+  return error ? { error: error.message } : {};
 }

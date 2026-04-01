@@ -51,10 +51,11 @@ const PersonNode = ({ data, nodeX, nodeY, onPress }: { data: any; nodeX: number;
     onPress={onPress}
     style={{ position: 'absolute', left: nodeX - NODE_SIZE / 2, top: nodeY - NODE_SIZE / 2, width: NODE_SIZE, alignItems: 'center', zIndex: 10 }}>
     <View
-      className="rounded-full bg-white items-center justify-center border-[3px] border-white"
+      className="rounded-full bg-white items-center justify-center border-[3px]"
       style={{
         width: NODE_SIZE,
         height: NODE_SIZE,
+        borderColor: data.admin ? '#FFD700' : 'white',
         elevation: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
