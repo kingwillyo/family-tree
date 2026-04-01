@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,20 @@ import {
   Image,
   Modal,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
+import { useAuth } from '../lib/auth-context';
+import { createMemory } from '../lib/memoryService';
+import { fetchCurrentUserProfile, Profile } from '../lib/treeService';
 
 export default function CreateMemoryScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [title, setTitle] = useState('');
   const [memory, setMemory] = useState('');
   const [activeType, setActiveType] = useState<'story' | 'photo' | 'audio'>('story');
@@ -29,9 +34,19 @@ export default function CreateMemoryScreen() {
   const [isLocationModalVisible, setLocationModalVisible] = useState(false);
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [manualLocation, setManualLocation] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+  const [profile, setProfile] = useState<Profile | null>(null);
+
+  useEffect(() => {
+    if (user) {
+      fetchCurrentUserProfile(user.id).then((p) => {
+        if (p) setProfile(p);
+      });
+    }
+  }, [user]);
 
   const isPostEnabled =
-    title.trim() || memory.trim() || mediaUri || mediaUris.length > 0 || location;
+    !isPosting && !!(title.trim() || memory.trim() || mediaUri || mediaUris.length > 0 || location);
 
   const handlePhotoUpload = async () => {
     const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -114,6 +129,36 @@ export default function CreateMemoryScreen() {
       setLocation(manualLocation.trim());
       setLocationModalVisible(false);
       setManualLocation('');
+    }
+  };
+
+  const handlePost = async () => {
+    if (!user) {
+      alert('You must be logged in to post a memory.');
+      return;
+    }
+    setIsPosting(true);
+    try {
+      const result = await createMemory(
+        {
+          type: activeType,
+          title: title.trim() || undefined,
+          body: activeType === 'story' ? memory.trim() || undefined : undefined,
+          location: location ?? undefined,
+          imageUris: activeType === 'photo' ? mediaUris : [],
+          audioUri: activeType === 'audio' ? mediaUri ?? undefined : undefined,
+          authorProfileId: profile?.id ?? undefined,
+        },
+        user.id
+      );
+
+      if ('error' in result) {
+        alert(`Failed to post: ${result.error}`);
+      } else {
+        router.back();
+      }
+    } finally {
+      setIsPosting(false);
     }
   };
 
@@ -210,11 +255,16 @@ export default function CreateMemoryScreen() {
 
         <TouchableOpacity
           className={`rounded-full px-4 py-1.5 ${isPostEnabled ? 'bg-[#84cc16]' : 'bg-green-100/50'}`}
-          disabled={!isPostEnabled}>
-          <Text
-            className={`text-[14px] font-bold ${isPostEnabled ? 'text-white' : 'text-green-800/40'}`}>
-            Post
-          </Text>
+          disabled={!isPostEnabled}
+          onPress={handlePost}>
+          {isPosting ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Text
+              className={`text-[14px] font-bold ${isPostEnabled ? 'text-white' : 'text-green-800/40'}`}>
+              Post
+            </Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -227,12 +277,18 @@ export default function CreateMemoryScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
           <View className="mb-4 flex-row items-start">
-            <Image
-              source={{
-                uri: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop', // Temporary mock avatar matching user
-              }}
-              className="mr-3 h-10 w-10 rounded-full bg-gray-200"
-            />
+            {profile?.avatar_url ? (
+              <Image
+                source={{ uri: profile.avatar_url }}
+                className="mr-3 h-10 w-10 rounded-full bg-gray-200"
+              />
+            ) : (
+              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-[#f0f9ed]">
+                <Text className="text-[15px] font-bold text-[#65a30d]">
+                  {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
+                </Text>
+              </View>
+            )}
             <View className="flex-1 pt-1">
               {location && (
                 <View className="mb-2 flex-row items-center self-start rounded-full bg-[#f0f9ed] px-3 py-1">

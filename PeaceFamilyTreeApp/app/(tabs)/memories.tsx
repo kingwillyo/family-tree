@@ -1,66 +1,168 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, ScrollView, Image, TouchableOpacity } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+  Modal,
+  Dimensions,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import MemoryCard from '../../components/MemoryCard';
+import MemoryCard, { MemoryData } from '../../components/MemoryCard';
+import { fetchMemoriesWithProfiles, MemoryWithProfile } from '../../lib/memoryService';
 
-// Mock Data targeting the precise design from the reference image
-const mockMemories = [
-  {
-    id: '1',
-    type: 'photo',
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+// ─────────────────────────────────────────────
+// Map a DB memory row → MemoryCard's MemoryData shape
+// ─────────────────────────────────────────────
+function toMemoryData(m: MemoryWithProfile): MemoryData {
+  const authorName = m.profile?.full_name ?? 'Family Member';
+  const authorAvatar = m.profile?.avatar_url ?? undefined;
+  const addedLabel = new Date(m.created_at).toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+
+  const base = {
+    id: m.id,
+    type: m.type,
     author: {
-      name: 'Sarah Jenkins',
-      avatar:
-        'https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=150&auto=format&fit=crop',
-      added: 'ADDED 2 DAYS AGO',
+      name: authorName,
+      avatar: authorAvatar,
+      initial: authorName.charAt(0).toUpperCase(),
+      added: addedLabel.toUpperCase(),
     },
+  };
+
+  if (m.type === 'photo') {
+    return {
+      ...base,
+      content: {
+        images: m.image_urls?.length ? m.image_urls : undefined,
+        title: m.title || 'Family Photo',
+        location: m.location ?? undefined,
+        date: addedLabel,
+      },
+    };
+  }
+
+  if (m.type === 'audio') {
+    return {
+      ...base,
+      author: { ...base.author, added: 'AUDIO MEMORY' },
+      content: {
+        title: m.title || 'Audio Memory',
+        location: m.location ?? undefined,
+        date: addedLabel,
+        duration: '—',
+        currentTime: '0:00',
+      },
+    };
+  }
+
+  // story
+  const storyTitle = m.title || (m.body ? (m.body.split('\n')[0].slice(0, 40) + (m.body.length > 40 ? '...' : '')) : 'Family Story');
+  
+  return {
+    ...base,
+    author: { ...base.author, added: 'WRITTEN STORY' },
     content: {
-      image:
-        'https://images.unsplash.com/photo-1548658826-b8ba5d164d7b?q=80&w=600&auto=format&fit=crop',
-      date: 'June 1945',
-      location: 'Brooklyn, NY',
-      title: "Grandpa's first car after the war",
-      tags: ['@Edward Jenkins Sr.'],
+      title: storyTitle,
+      excerpt: m.body ?? m.title ?? '',
+      location: m.location ?? undefined,
+      date: addedLabel,
     },
-  },
-  {
-    id: '2',
-    type: 'audio',
-    author: {
-      name: 'Uncle Thomas',
-      avatar:
-        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?q=80&w=150&auto=format&fit=crop',
-      added: 'AUDIO MEMORY',
-    },
-    content: {
-      duration: '2:15',
-      currentTime: '0:42',
-      title: 'The Sunday Roast Tradition',
-      tags: ['@Mary Jenkins', '@Thomas Jenkins Jr.'],
-      location: 'London, UK',
-    },
-  },
-  {
-    id: '3',
-    type: 'story',
-    author: { name: 'Martha Jenkins', initial: 'MJ', added: 'WRITTEN STORY' },
-    content: {
-      excerpt:
-        '"The lighthouse was the only thing we could see through the thick fog that night in 1952. Father held my hand so tight, his knuckles were white..."',
-      tags: ['@George Jenkins'],
-    },
-  },
-];
+  };
+}
 
 export default function MemoriesScreen() {
   const router = useRouter();
   const [activeFilter, setActiveFilter] = useState('All');
+  const [memories, setMemories] = useState<MemoryData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
+  const [selectedMemory, setSelectedMemory] = useState<MemoryData | null>(null);
   const filters = ['All', 'Photos', 'Stories', 'Audio'];
+
+  const loadMemories = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setIsRefreshing(true);
+    else setIsLoading(true);
+
+    const data = await fetchMemoriesWithProfiles();
+    setMemories(data.map(toMemoryData));
+
+    if (isRefresh) setIsRefreshing(false);
+    else setIsLoading(false);
+  }, []);
+
+  useEffect(() => {
+    loadMemories();
+  }, [loadMemories]);
+
+  const typeMap: Record<string, string> = {
+    Photos: 'photo',
+    Stories: 'story',
+    Audio: 'audio',
+  };
+
+  const filtered = memories.filter((m) => {
+    const matchesFilter = activeFilter === 'All' || m.type === typeMap[activeFilter];
+    const matchesSearch =
+      !search.trim() ||
+      (m.content.title ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      (m.content.excerpt ?? '').toLowerCase().includes(search.toLowerCase()) ||
+      m.author.name.toLowerCase().includes(search.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   return (
     <SafeAreaView className="flex-1 bg-[#fcFAF8]" edges={['top']}>
+      {/* Detail Modal */}
+      <Modal
+        visible={!!selectedMemory}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSelectedMemory(null)}>
+        <View className="flex-1 justify-end bg-black/50">
+          <TouchableOpacity
+            activeOpacity={1}
+            onPress={() => setSelectedMemory(null)}
+            className="absolute inset-0"
+          />
+          <View
+            className="w-full overflow-hidden rounded-t-[32px] bg-[#fcFAF8]"
+            style={{ maxHeight: SCREEN_HEIGHT * 0.9 }}>
+            {/* Handle bar */}
+            <View className="items-center pt-3">
+              <View className="h-1.5 w-12 rounded-full bg-gray-300" />
+            </View>
+
+            <View className="flex-row items-center justify-between bg-white px-6 py-4">
+              <Text className="flex-1 text-[17px] font-bold text-gray-900" numberOfLines={1}>
+                {selectedMemory?.content.title || 'Memory Detail'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setSelectedMemory(null)}
+                className="ml-4 h-8 w-8 items-center justify-center rounded-full bg-gray-100">
+                <Feather name="x" size={18} color="#4b5563" />
+              </TouchableOpacity>
+            </View>
+            <ScrollView showsVerticalScrollIndicator={false} className="p-4">
+              {selectedMemory && <MemoryCard memory={selectedMemory} isFullView={true} />}
+              <View className="h-10" />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 pb-4 pt-4">
         <Text className="text-[26px] font-bold text-gray-900">Memories</Text>
@@ -71,16 +173,30 @@ export default function MemoriesScreen() {
 
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 100 }}>
+        contentContainerStyle={{ paddingBottom: 100 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={() => loadMemories(true)}
+            tintColor="#84cc16"
+          />
+        }>
         {/* Search Bar */}
         <View className="mb-4 px-6">
           <View className="flex-row items-center rounded-full border border-gray-200 bg-white px-4 py-3">
             <Feather name="search" size={18} color="#9ca3af" />
             <TextInput
+              value={search}
+              onChangeText={setSearch}
               placeholder="Search family stories..."
               placeholderTextColor="#9ca3af"
               className="ml-3 flex-1 text-[15px] font-medium text-gray-900"
             />
+            {search.length > 0 && (
+              <TouchableOpacity onPress={() => setSearch('')}>
+                <Feather name="x" size={16} color="#9ca3af" />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -104,9 +220,34 @@ export default function MemoriesScreen() {
 
         {/* Feed */}
         <View className="px-6">
-          {mockMemories.map((memory) => (
-            <MemoryCard key={memory.id} memory={memory as any} />
-          ))}
+          {isLoading ? (
+            <View className="mt-16 items-center">
+              <ActivityIndicator size="large" color="#84cc16" />
+              <Text className="mt-4 text-[14px] font-medium text-gray-400">
+                Loading memories...
+              </Text>
+            </View>
+          ) : filtered.length === 0 ? (
+            <View className="mt-16 items-center">
+              <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-[#f0f9ed]">
+                <Feather name="image" size={28} color="#84cc16" />
+              </View>
+              <Text className="text-[18px] font-bold text-gray-800">No memories yet</Text>
+              <Text className="mt-2 text-center text-[14px] font-medium text-gray-400">
+                {search
+                  ? 'No memories match your search.'
+                  : "Start capturing your family's precious moments."}
+              </Text>
+            </View>
+          ) : (
+            filtered.map((memory) => (
+              <MemoryCard
+                key={memory.id}
+                memory={memory}
+                onPress={() => setSelectedMemory(memory)}
+              />
+            ))
+          )}
         </View>
       </ScrollView>
 
