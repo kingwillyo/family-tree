@@ -91,8 +91,8 @@ export default function TreeScreen() {
   const [rootProfileId, setRootProfileId] = useState<string | null>(null);
   const [treeLoading, setTreeLoading] = useState(true);
   const [treeError, setTreeError] = useState<string | null>(null);
-  const [rawDescendants, setRawDescendants] = useState<D3TreeNode | null>(null);
-  const [rawAncestors, setRawAncestors] = useState<D3TreeNode | null>(null);
+  const [treeRoot, setTreeRoot] = useState<D3TreeNode | null>(null);
+  const [extraLinks, setExtraLinks] = useState<Array<{ sourceId: string; targetId: string }>>([]);
 
   const loadTree = React.useCallback(async () => {
     if (!user) return;
@@ -106,9 +106,9 @@ export default function TreeScreen() {
       const { profiles, relationships } = await fetchTreeData();
 
       if (rootId) {
-        const { descendants, ancestors } = buildD3Tree(profiles, relationships, rootId);
-        setRawDescendants(descendants);
-        setRawAncestors(ancestors);
+        const { tree, extraLinks } = buildD3Tree(profiles, relationships, rootId);
+        setTreeRoot(tree);
+        setExtraLinks(extraLinks);
       } else {
         setTreeError('No profile found for your account. Ask an admin to link your profile.');
       }
@@ -135,40 +135,31 @@ export default function TreeScreen() {
   const minScale = 0.5;
   const maxScale = 2.0;
 
-  const [descendantNodes, setDescendantNodes] = useState<d3.HierarchyPointNode<D3TreeNode>[]>([]);
-  const [descendantLinks, setDescendantLinks] = useState<d3.HierarchyPointLink<D3TreeNode>[]>([]);
-  const [ancestorNodes, setAncestorNodes] = useState<d3.HierarchyPointNode<D3TreeNode>[]>([]);
-  const [ancestorLinks, setAncestorLinks] = useState<d3.HierarchyPointLink<D3TreeNode>[]>([]);
+  const [treeNodes, setTreeNodes] = useState<d3.HierarchyPointNode<D3TreeNode>[]>([]);
+  const [treeLinks, setTreeLinks] = useState<d3.HierarchyPointLink<D3TreeNode>[]>([]);
 
   const [treeOffsetX, setTreeOffsetX] = useState(0);
   const [treeOffsetY, setTreeOffsetY] = useState(0);
 
   useMemo(() => {
-    if (!rawDescendants || !rawAncestors) return;
+    if (!treeRoot) return;
 
-    const descRoot = d3.hierarchy(rawDescendants);
-    const descTreeLayout = d3.tree<D3TreeNode>().nodeSize([NODE_SPACING_X, NODE_SPACING_Y]);
-    const layout = descTreeLayout(descRoot);
+    const root = d3.hierarchy(treeRoot);
+    const treeLayout = d3.tree<D3TreeNode>().nodeSize([NODE_SPACING_X, NODE_SPACING_Y]);
+    const layout = treeLayout(root);
 
-    const nodes = layout.descendants();
-    setDescendantNodes(nodes);
-    setDescendantLinks(layout.links());
+    const nodes = layout.descendants().filter((n) => n.data.id !== 'VIRTUAL_ROOT');
+    const links = layout.links().filter((l) => l.source.data.id !== 'VIRTUAL_ROOT');
+
+    setTreeNodes(nodes);
+    setTreeLinks(links);
 
     const currentUserNode = nodes.find((n) => n.data.id === rootProfileId);
     if (currentUserNode) {
       setTreeOffsetX(-currentUserNode.x);
       setTreeOffsetY(-currentUserNode.y);
     }
-
-    const ancRoot = d3.hierarchy(rawAncestors);
-    const ancTreeLayout = d3.tree<D3TreeNode>().nodeSize([NODE_SPACING_X, NODE_SPACING_Y]);
-    const ancLayout = ancTreeLayout(ancRoot);
-
-    // Skip the root user in the ancestor tree if they are already the root of descendants
-    const parents = ancLayout.descendants().filter((node) => node.depth > 0);
-    setAncestorNodes(parents);
-    setAncestorLinks(ancLayout.links().filter(l => l.source.depth > 0 || l.target.depth > 0));
-  }, [rawDescendants, rawAncestors, rootProfileId]);
+  }, [treeRoot, rootProfileId]);
 
   const contentWidth = 2000;
   const contentHeight = 2000;
@@ -252,36 +243,20 @@ export default function TreeScreen() {
     if (!query.trim()) return;
     const lowerQuery = query.toLowerCase();
 
-    let found = descendantNodes.find((n) => n.data.name.toLowerCase().includes(lowerQuery));
-    let isAncestor = false;
-
-    if (!found) {
-      found = ancestorNodes.find((n) => n.data.name.toLowerCase().includes(lowerQuery));
-      isAncestor = !!found;
-    }
+    let found = treeNodes.find((n) => n.data.name.toLowerCase().includes(lowerQuery));
 
     let isSpouse = false;
-    let spouseHost: typeof found | undefined;
     if (!found) {
-      const dHost = descendantNodes.find((n) => n.data.spouse?.name.toLowerCase().includes(lowerQuery));
+      const dHost = treeNodes.find((n) => n.data.spouse?.name.toLowerCase().includes(lowerQuery));
       if (dHost) {
         found = dHost;
         isSpouse = true;
       }
     }
 
-    if (!found && !spouseHost) {
-      const aHost = ancestorNodes.find((n) => n.data.spouse?.name.toLowerCase().includes(lowerQuery));
-      if (aHost) {
-        found = aHost;
-        isAncestor = true;
-        isSpouse = true;
-      }
-    }
-
     if (found) {
       const nodeX = found.x + treeOffsetX + (isSpouse ? 140 : 0);
-      const nodeY = (isAncestor ? -found.y : found.y) + treeOffsetY;
+      const nodeY = found.y + treeOffsetY;
 
       scale.value = withSpring(1.0);
       savedScale.value = 1.0;
@@ -334,7 +309,7 @@ export default function TreeScreen() {
               animatedStyle,
             ]}>
             <Svg width={contentWidth} height={contentHeight} style={StyleSheet.absoluteFill}>
-              {descendantLinks.map((link, index) => {
+              {treeLinks.map((link, index) => {
                 const sourceHasSpouse = !!link.source.data.spouse;
                 const sourceX = originX + link.source.x + treeOffsetX + (sourceHasSpouse ? 66 : 0);
                 const sourceY = originY + link.source.y + treeOffsetY + 38;
@@ -344,30 +319,36 @@ export default function TreeScreen() {
                 const midY = (sourceY + targetY) / 2;
 
                 const d = `M${sourceX},${sourceY} L${sourceX},${midY} L${targetX},${midY} L${targetX},${targetY}`;
-                return <Path key={`desc-link-${link.source.data.id}-${link.target.data.id}-${index}`} d={d} fill="none" stroke="#d1d5db" strokeWidth="2" />;
+                return <Path key={`tree-link-${link.source.data.id}-${link.target.data.id}-${index}`} d={d} fill="none" stroke="#d1d5db" strokeWidth="2" />;
               })}
 
-              {ancestorLinks.map((link, index) => {
-                const sourceX = originX + link.source.x + treeOffsetX;
-                const sourceY = originY - link.source.y + treeOffsetY - 38;
+              {extraLinks.map((link, index) => {
+                const sourceNode = treeNodes.find(n => n.data.id === link.sourceId);
+                const targetHostNode = treeNodes.find(n => n.data.spouse?.id === link.targetId);
 
-                const targetX = originX + link.target.x + treeOffsetX;
-                const targetY = originY - link.target.y + treeOffsetY + 38;
+                if (!sourceNode || !targetHostNode) return null;
 
+                const sourceHasSpouse = !!sourceNode.data.spouse;
+                const sourceX = originX + sourceNode.x + treeOffsetX + (sourceHasSpouse ? 66 : 0);
+                const sourceY = originY + sourceNode.y + treeOffsetY + 38;
+
+                const targetX = originX + targetHostNode.x + treeOffsetX + 132;
+                const targetY = originY + targetHostNode.y + treeOffsetY - 38;
                 const midY = (sourceY + targetY) / 2;
 
                 const d = `M${sourceX},${sourceY} L${sourceX},${midY} L${targetX},${midY} L${targetX},${targetY}`;
-                return <Path key={`anc-link-${link.source.data.id}-${link.target.data.id}-${index}`} d={d} fill="none" stroke="#d1d5db" strokeWidth="2" />;
+                return <Path key={`extra-link-${index}`} d={d} fill="none" stroke="#d1d5db" strokeWidth="2" strokeDasharray="4 4" />;
               })}
             </Svg>
 
-            {descendantNodes.map((node) => {
+            {treeNodes.map((node) => {
               const { data, x, y } = node;
               const nodeX = originX + x + treeOffsetX;
               const nodeY = originY + y + treeOffsetY;
 
               const isLeaf = !node.children || node.children.length === 0;
-              const pos = getButtonPosition(false, isLeaf, false, !!data.spouse, nodeX, originX);
+              const isOldest = node.parent?.data.id === 'VIRTUAL_ROOT' || !node.parent;
+              const pos = getButtonPosition(isOldest, isLeaf, false, !!data.spouse, nodeX, originX);
               let bx = 0, by = 0;
               if (pos === 'TOP') by = -62;
               if (pos === 'BOTTOM') by = 86; // Ensures uniform gap between name text and button
@@ -375,7 +356,7 @@ export default function TreeScreen() {
               if (pos === 'RIGHT') bx = 62;
 
               return (
-                <View key={`desc-${data.id}-${node.x}-${node.y}`}>
+                <View key={`tree-${data.id}-${node.x}-${node.y}`}>
                   <PersonNode data={data} nodeX={nodeX} nodeY={nodeY} onPress={() => router.push(`/member/${data.id}`)} />
                   <PlusButton cx={nodeX + bx} cy={nodeY + by} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.id, relativeName: data.name } })} />
 
@@ -386,33 +367,6 @@ export default function TreeScreen() {
                       <PlusButton cx={nodeX + 132 + 62} cy={nodeY} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.spouse!.id, relativeName: data.spouse!.name } })} />
                     </>
                   )}
-                </View>
-              );
-            })}
-
-            {ancestorNodes.map((node) => {
-              const { data, x, y } = node;
-              const nodeX = originX + x + treeOffsetX;
-              const nodeY = originY - y + treeOffsetY;
-
-              const isOldest = !node.children || node.children.length === 0;
-              const pos = getButtonPosition(isOldest, false, false, !!data.spouse, nodeX, originX);
-              let bx = 0, by = 0;
-              if (pos === 'TOP') by = -62;
-              if (pos === 'BOTTOM') by = 86; 
-              if (pos === 'LEFT') bx = -62;
-              if (pos === 'RIGHT') bx = 62;
-
-              return (
-                <View key={`anc-${data.id}-${node.x}-${node.y}`}>
-                  {/* We pass a modified data object without the spouse to avoid double rendering in the ancestor tree */}
-                  <PersonNode 
-                    data={{ ...data, spouse: undefined }} 
-                    nodeX={nodeX} 
-                    nodeY={nodeY} 
-                    onPress={() => router.push(`/member/${data.id}`)} 
-                  />
-                  <PlusButton cx={nodeX + bx} cy={nodeY + by} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.id, relativeName: data.name } })} />
                 </View>
               );
             })}

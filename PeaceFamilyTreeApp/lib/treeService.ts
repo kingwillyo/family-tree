@@ -128,13 +128,13 @@ export function buildD3Tree(
   profiles: Profile[],
   relationships: Relationship[],
   rootId: string
-): { descendants: D3TreeNode; ancestors: D3TreeNode } {
+): { tree: D3TreeNode; extraLinks: Array<{ sourceId: string; targetId: string }> } {
   const profileMap = new Map<string, Profile>(profiles.map((p) => [p.id, p]));
 
   // Build adjacency maps
   const childrenOf = new Map<string, string[]>();   // parent → [childId]
   const parentsOf = new Map<string, string[]>();    // child  → [parentId]
-  const spouseOf = new Map<string, string>();        // id → spouseId (first spouse)
+  const spouseOf = new Map<string, string>();       // id → spouseId (first spouse)
 
   for (const rel of relationships) {
     const from = rel.from_profile_id;
@@ -159,74 +159,94 @@ export function buildD3Tree(
       if (!spouseOf.has(from)) {
         spouseOf.set(from, to);
       }
-      // Also ensure reverse spouse mapping exists for easier lookup
       if (!spouseOf.has(to)) {
         spouseOf.set(to, from);
       }
     }
   }
 
-  const toNode = (p: Profile, role?: string, includeSpouse = true): D3TreeNode => ({
+  const toNode = (p: Profile, includeSpouse = true): D3TreeNode => ({
     id: p.id,
     name: p.full_name,
-    role: role ?? '',
+    role: p.id === rootId ? 'CURRENT USER' : '',
     dates: formatDates(p),
     imageUrl: p.avatar_url ?? undefined,
     admin: p.role === 'admin',
     spouse: (includeSpouse && spouseOf.has(p.id))
       ? (() => {
           const sp = profileMap.get(spouseOf.get(p.id)!);
-          return sp ? toNode(sp, undefined, false) : undefined;
+          return sp ? toNode(sp, false) : undefined;
         })()
       : undefined,
   });
 
-  // ── Descendants tree (root → children → grandchildren …) ──
-  const buildDescendants = (id: string, visited = new Set<string>()): D3TreeNode => {
-    if (visited.has(id)) {
-      // Safety: prevent circular references
-      const p = profileMap.get(id);
-      return p ? toNode(p) : { id, name: 'Unknown' };
+  const allProfileIds = Array.from(profileMap.keys());
+  
+  const extraLinks: Array<{ sourceId: string; targetId: string }> = [];
+  const primarySpouses = new Set<string>();
+  const secondarySpouses = new Set<string>();
+  
+  // Resolve primary vs secondary spouses to avoid DAG duplicate paths
+  for (const [s1, s2] of Array.from(spouseOf.entries())) {
+    if (primarySpouses.has(s1) || secondarySpouses.has(s1) || primarySpouses.has(s2) || secondarySpouses.has(s2)) {
+      continue;
     }
-    visited.add(id);
+    const s1Parents = parentsOf.get(s1) || [];
+    const s2Parents = parentsOf.get(s2) || [];
+    
+    if (s1Parents.length > 0 && s2Parents.length === 0) {
+      primarySpouses.add(s1);
+      secondarySpouses.add(s2);
+    } else if (s2Parents.length > 0 && s1Parents.length === 0) {
+      primarySpouses.add(s2);
+      secondarySpouses.add(s1);
+    } else if (s1Parents.length > 0 && s2Parents.length > 0) {
+      primarySpouses.add(s1);
+      secondarySpouses.add(s2);
+      for (const p of s2Parents) {
+        extraLinks.push({ sourceId: p, targetId: s2 });
+      }
+    } else {
+      primarySpouses.add(s1);
+      secondarySpouses.add(s2);
+    }
+  }
 
-    const profile = profileMap.get(id);
-    if (!profile) return { id, name: 'Unknown' };
+  const oldestAncestors = allProfileIds.filter(id => {
+    const noParents = !parentsOf.has(id) || parentsOf.get(id)!.length === 0;
+    return noParents && !secondarySpouses.has(id);
+  });
 
-    const isRoot = id === rootId;
-    const node: D3TreeNode = {
-      ...toNode(profile, isRoot ? 'CURRENT USER' : undefined),
-      children: (childrenOf.get(id) ?? []).map((cid) => buildDescendants(cid, new Set(visited))),
-    };
-    return node;
-  };
-
-  // ── Ancestors tree (synthetic root → parents → grandparents …) ──
-  const getAllParents = (profileId: string) => {
-    return parentsOf.get(profileId) ?? [];
-  };
-
-  const buildAncestors = (id: string, visited = new Set<string>()): D3TreeNode | null => {
+  const buildSubTree = (id: string, visited: Set<string>): D3TreeNode | null => {
     if (visited.has(id)) return null;
     visited.add(id);
 
     const profile = profileMap.get(id);
     if (!profile) return null;
 
-    const parents = getAllParents(id)
-      .map((pid) => buildAncestors(pid, new Set(visited)))
-      .filter(Boolean) as D3TreeNode[];
+    if (secondarySpouses.has(id)) {
+      return null;
+    }
 
-    return {
-      ...toNode(profile, undefined, true),
-      children: parents.length ? parents : undefined,
+    const node: D3TreeNode = {
+      ...toNode(profile),
+      children: (childrenOf.get(id) ?? [])
+        .map(cid => buildSubTree(cid, new Set(visited)))
+        .filter(Boolean) as D3TreeNode[],
     };
+    return node;
   };
 
-  const descendants = buildDescendants(rootId) || { id: rootId, name: '', children: [] };
-  const ancestors = buildAncestors(rootId) || { id: rootId, name: '', children: [] };
+  const tree: D3TreeNode = {
+    id: 'VIRTUAL_ROOT',
+    name: 'VIRTUAL_ROOT',
+    role: 'hidden',
+    children: oldestAncestors
+      .map(id => buildSubTree(id, new Set<string>()))
+      .filter(Boolean) as D3TreeNode[],
+  };
 
-  return { descendants, ancestors };
+  return { tree, extraLinks };
 }
 
 // ─────────────────────────────────────────────
