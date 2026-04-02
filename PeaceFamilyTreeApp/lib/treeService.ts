@@ -813,3 +813,12 @@ export async function updateProposalStatus(
     
   return error ? { error: error.message } : {};
 }
+
+// ─────────────────────────────────────────────
+// 13. Delete Profile
+// ─────────────────────────────────────────────
+
+export async function deleteProfile(profileId: string): Promise<{ error?: string }> {
+  const { error } = await supabase.from('profiles').delete().eq('id', profileId);
+  return error ? { error: error.message } : {};
+}

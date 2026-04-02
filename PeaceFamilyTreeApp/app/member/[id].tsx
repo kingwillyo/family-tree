@@ -36,6 +36,8 @@ import {
   uploadAvatar,
   uploadMemberMedia,
   createProposal,
+  fetchCurrentProfile,
+  deleteProfile,
 } from '../../lib/treeService';
 
 const { width } = Dimensions.get('window');
@@ -239,6 +241,7 @@ export default function MemberProfileScreen() {
   const { user } = useAuth();
 
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
   const [timeline, setTimeline] = useState<TimelineEvent[]>([]);
   const [media, setMedia] = useState<Memory[]>([]);
   const [connections, setConnections] = useState<ProfileConnection[]>([]);
@@ -267,14 +270,16 @@ export default function MemberProfileScreen() {
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [p, t, m, c, s] = await Promise.all([
+    const [p, currP, t, m, c, s] = await Promise.all([
       fetchProfileById(id),
+      fetchCurrentProfile(),
       fetchTimelineEvents(id),
       fetchMemberMedia(id),
       fetchMemberConnections(id),
       fetchMemberStats(id),
     ]);
     setProfile(p);
+    setCurrentProfile(currP);
     setTimeline(t);
     setMedia(m);
     setConnections(c);
@@ -483,7 +488,51 @@ export default function MemberProfileScreen() {
           <TouchableOpacity>
             <Feather name="share" size={24} color="#111827" />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push(`/member/edit/${id}`)}>
+          <TouchableOpacity onPress={() => {
+            if (!profile) return;
+            const options: any[] = [
+              { text: 'Edit Profile', onPress: () => router.push(`/member/edit/${id}`) }
+            ];
+
+            const isOwnProfile = profile.id === currentProfile?.id || (user && profile.user_id === user.id);
+            const isAdmin = currentProfile?.role === 'admin';
+            const noUserId = profile.user_id == null;
+
+            if (!isOwnProfile && isAdmin && noUserId) {
+              options.push({
+                text: 'Delete Profile',
+                style: 'destructive',
+                onPress: () => {
+                  Alert.alert(
+                    'Delete Profile',
+                    `Are you sure you want to completely remove ${profile.full_name}? This action cannot be undone.`,
+                    [
+                      { text: 'Cancel', style: 'cancel' },
+                      { 
+                        text: 'Delete', 
+                        style: 'destructive',
+                        onPress: async () => {
+                          const { error } = await deleteProfile(profile.id);
+                          if (error) {
+                            Alert.alert('Error', error);
+                          } else {
+                            if (router.canGoBack()) {
+                              router.back();
+                            } else {
+                              router.push('/(tabs)/tree');
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  );
+                }
+              });
+            }
+
+            options.push({ text: 'Cancel', style: 'cancel' });
+            Alert.alert('Profile Options', '', options);
+          }}>
             <Feather name="more-horizontal" size={24} color="#111827" />
           </TouchableOpacity>
         </View>
