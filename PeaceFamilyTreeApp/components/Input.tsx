@@ -11,9 +11,9 @@ export function Input({ label, error, className = '', ...props }: InputProps) {
     <View className="mb-4">
       {label && <Text className="mb-2 text-sm font-semibold text-gray-700">{label}</Text>}
       <TextInput
-        className={`w-full border bg-white ${
-          error ? 'border-red-300' : 'border-gray-200'
-        } rounded-full px-4 py-4 text-base ${className}`}
+        className={`w-full bg-gray-100 ${
+          error ? 'border border-red-300' : 'border border-transparent'
+        } rounded-2xl px-5 py-4 text-base ${className}`}
         placeholderTextColor="#9CA3AF"
         {...props}
       />

@@ -27,19 +27,19 @@ export function Button({
   const isDangerLight = variant === 'danger-light';
 
   const containerStyles = {
-    brand: 'bg-[#8cc63f]',
+    brand: 'bg-[#064e3b]',
     'danger-light': 'bg-[#fff1f2]',
-    primary: 'bg-emerald-600',
-    secondary: 'bg-gray-100',
-    outline: 'bg-white border-2 border-emerald-600',
+    primary: 'bg-[#064e3b]',
+    secondary: 'bg-[#f3f4f6]',
+    outline: 'bg-white border-2 border-[#064e3b]',
   };
 
   const textStyles = {
-    brand: 'text-white font-extrabold uppercase tracking-[0.15em]',
+    brand: 'text-white font-bold',
     'danger-light': 'text-[#e11d48] font-bold',
-    primary: 'text-white font-semibold',
-    secondary: 'text-gray-900 font-semibold',
-    outline: 'text-emerald-600 font-semibold',
+    primary: 'text-white font-bold',
+    secondary: 'text-[#111827] font-bold',
+    outline: 'text-[#064e3b] font-bold',
   };
 
   const iconColors = {
@@ -47,12 +47,12 @@ export function Button({
     'danger-light': '#e11d48',
     primary: 'white',
     secondary: '#111827',
-    outline: '#059669',
+    outline: '#064e3b',
   };
 
   return (
     <TouchableOpacity
-      className={`h-[64px] w-full flex-row items-center justify-center gap-3 rounded-[24px] ${
+      className={`h-[56px] w-full flex-row items-center justify-center gap-3 rounded-full ${
         containerStyles[variant]
       } ${disabled || loading ? 'opacity-50' : ''} ${className}`}
       disabled={disabled || loading}
@@ -78,10 +78,10 @@ export function Button({
 
 const styles = StyleSheet.create({
   brandShadow: {
-    shadowColor: '#8cc63f',
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 8,
+    shadowColor: '#064e3b',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 4,
   },
 });

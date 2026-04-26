@@ -255,6 +255,9 @@ export default function MemberProfileScreen() {
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  const isAdmin = currentProfile?.role === 'admin';
+  const isOwnProfile = profile?.id === currentProfile?.id || (user && profile?.user_id === user.id);
+
   // Shimmer animation for skeleton
   const shimmer = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -307,8 +310,8 @@ export default function MemberProfileScreen() {
     if (result.canceled || !result.assets?.[0]?.uri) return;
     setAvatarUploading(true);
 
-    // If Admin, upload directly
-    if (profile.role === 'admin') {
+    // If Admin or Own Profile, upload directly
+    if (isAdmin || isOwnProfile) {
       const res = await uploadAvatar(result.assets[0].uri, user.id, id);
       if ('error' in res) {
         Alert.alert('Upload failed', res.error);
@@ -373,8 +376,8 @@ export default function MemberProfileScreen() {
       created_by: user.id
     };
 
-    // 1. If Admin, add directly
-    if (profile.role === 'admin') {
+    // 1. If Admin or Own Profile, add directly
+    if (isAdmin || isOwnProfile) {
       const res = await addTimelineEvent(
         eventData,
         id,
@@ -416,8 +419,8 @@ export default function MemberProfileScreen() {
           text: 'Delete', 
           style: 'destructive',
           onPress: async () => {
-            // 1. If Admin, delete directly
-            if (profile.role === 'admin') {
+            // 1. If Admin or Own Profile, delete directly
+            if (isAdmin || isOwnProfile) {
               const res = await deleteTimelineEvent(event.id);
               if (res.error) {
                 Alert.alert('Error', res.error);

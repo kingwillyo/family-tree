@@ -85,7 +85,7 @@ const PlusButton = ({ cx, cy, onPress }: { cx: number; cy: number; onPress: () =
 
 export default function TreeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, familyId } = useAuth();
   const { width, height } = Dimensions.get('window');
 
   const [rootProfileId, setRootProfileId] = useState<string | null>(null);
@@ -103,7 +103,13 @@ export default function TreeScreen() {
       const rootId = currentProfile?.id ?? null;
       setRootProfileId(rootId);
 
-      const { profiles, relationships } = await fetchTreeData();
+      if (!familyId) {
+        setTreeError('You must finalize your profile setup to view your tree.');
+        setTreeLoading(false);
+        return;
+      }
+
+      const { profiles, relationships } = await fetchTreeData(familyId);
 
       if (rootId) {
         const { tree, extraLinks } = buildD3Tree(profiles, relationships, rootId);

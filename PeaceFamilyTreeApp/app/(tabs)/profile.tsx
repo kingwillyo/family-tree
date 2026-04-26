@@ -108,6 +108,10 @@ export default function TabProfileScreen() {
   const [mediaUploading, setMediaUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  const isAdmin = profile?.role === 'admin';
+  // In the profile tab, profile IS the current user's profile
+  const isOwnProfile = true;
+
   // Shimmer animation for skeleton
   const shimmer = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -192,8 +196,8 @@ export default function TabProfileScreen() {
     if (result.canceled || !result.assets?.[0]?.uri) return;
     setAvatarUploading(true);
 
-    // If Admin, upload directly (uploadAvatar currently does DB update too)
-    if (profile.role === 'admin') {
+    // If Admin or Own Profile, upload directly (uploadAvatar currently does DB update too)
+    if (isAdmin || isOwnProfile) {
       const res = await uploadAvatar(result.assets[0].uri, user.id, profileId);
       if ('error' in res) {
         Alert.alert('Upload failed', res.error);
@@ -258,8 +262,8 @@ export default function TabProfileScreen() {
           text: 'Delete', 
           style: 'destructive',
           onPress: async () => {
-            // 1. If Admin, delete directly
-            if (profile.role === 'admin') {
+            // 1. If Admin or Own Profile, delete directly
+            if (isAdmin || isOwnProfile) {
               const res = await deleteTimelineEvent(event.id);
               if (res.error) {
                 Alert.alert('Error', res.error);

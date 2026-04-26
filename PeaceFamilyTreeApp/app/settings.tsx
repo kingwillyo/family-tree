@@ -22,7 +22,7 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             await signOut();
-            router.replace('/login');
+            router.replace('/welcome');
           } 
         },
       ]

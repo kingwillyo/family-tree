@@ -107,9 +107,9 @@ export interface TreeData {
   relationships: Relationship[];
 }
 
-export async function fetchTreeData(): Promise<TreeData> {
+export async function fetchTreeData(familyId: string): Promise<TreeData> {
   const [profilesRes, relationshipsRes] = await Promise.all([
-    supabase.from('profiles').select('*').order('created_at'),
+    supabase.from('profiles').select('*').eq('family_id', familyId).order('created_at'),
     supabase.from('relationships').select('*'),
   ]);
 
@@ -266,6 +266,7 @@ export interface AddMemberInput {
 export async function addMember(
   input: AddMemberInput,
   createdBy: string,
+  familyId: string,
   relativeId?: string,
   relationType?: 'parent' | 'child' | 'spouse'
 ): Promise<{ profileId: string } | { error: string }> {
@@ -273,6 +274,7 @@ export async function addMember(
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
     .insert({
+      family_id: familyId,
       full_name: input.fullName,
       date_of_birth: input.dateOfBirth ?? null,
       birth_place: input.birthPlace ?? null,

@@ -128,8 +128,9 @@ export default function EditMemberScreen() {
         visibility,
       };
 
-      // 1. If Admin, update directly
-      if (currentProfile?.role === 'admin') {
+      // 1. If Admin or Own Profile, update directly
+      const isOwnProfile = profileId === currentProfile?.id;
+      if (currentProfile?.role === 'admin' || isOwnProfile) {
         const { error: updateError } = await supabase
           .from('profiles')
           .update(updateData)
@@ -141,7 +142,7 @@ export default function EditMemberScreen() {
           router.back();
         }
       } 
-      // 2. If Member, create proposal
+      // 2. If Member editing someone else, create proposal
       else {
         const { error: propError } = await supabase
           .from('edit_proposals')

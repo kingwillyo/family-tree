@@ -21,7 +21,7 @@ import { useAuth } from '../../lib/auth-context';
 
 export default function AddMemberScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, familyId } = useAuth();
   const params = useLocalSearchParams<{
     relativeId?: string;
     relativeName?: string;
@@ -56,8 +56,8 @@ export default function AddMemberScreen() {
 
     setSaving(true);
     try {
-      if (!user) {
-        setError('User not authenticated');
+      if (!user || !familyId) {
+        setError('User not authenticated or missing family association');
         return;
       }
 
@@ -69,6 +69,7 @@ export default function AddMemberScreen() {
           isLiving,
         },
         user.id,
+        familyId,
         params.relativeId,
         relation as 'parent' | 'child' | 'spouse'
       );
