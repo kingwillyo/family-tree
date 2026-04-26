@@ -623,28 +623,33 @@ export async function fetchMemberStats(profileId: string): Promise<MemberStats> 
       .eq('profile_id', profileId),
     supabase
       .from('relationships')
-      .select('relationship_type')
+      .select('relationship_type, from_profile_id, to_profile_id')
       .or(`from_profile_id.eq.${profileId},to_profile_id.eq.${profileId}`),
   ]);
 
   const rels = relsRes.data ?? [];
-  // Normalise: count each unique related person once as a child
+  
+  // 1. Connection count is the number of unique related people
+  const relatedIds = new Set(
+    rels.flatMap((r) => [r.from_profile_id, r.to_profile_id]).filter((id) => id !== profileId)
+  );
+
+  // 2. Children count: count how many people this profile is a parent to.
+  // In our reciprocal system:
+  // - (from: Me, to: Child, type: 'child')
+  // - (from: Child, to: Me, type: 'parent')
   const childrenCount = rels.filter((r) => {
-    // from→child means this profile is a parent of someone
     return (
-      (r.relationship_type === 'child' && relsRes.data?.find((x) => x === r)) ||
-      r.relationship_type === 'child'
+      (r.from_profile_id === profileId && r.relationship_type === 'child') ||
+      (r.to_profile_id === profileId && r.relationship_type === 'parent')
     );
   }).length;
-
-  // Count unique `child` type relationships where this profile IS the parent
-  const childRels = rels.filter((r) => r.relationship_type === 'child');
 
   return {
     memoriesCount: memoriesRes.count ?? 0,
     eventsCount: eventsRes.count ?? 0,
-    childrenCount: childRels.length,
-    connectionsCount: rels.length,
+    childrenCount,
+    connectionsCount: relatedIds.size,
   };
 }
 

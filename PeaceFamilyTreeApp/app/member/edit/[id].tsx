@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { supabase } from '../../../lib/supabase';
 import { Input } from '../../../components/Input';
 import { Feather } from '@expo/vector-icons';
@@ -25,9 +26,13 @@ export default function EditMemberScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  const [fullName, setFullName] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [middleName, setMiddleName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [dob, setDob] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [dod, setDod] = useState('');
+  const [showDeathPicker, setShowDeathPicker] = useState(false);
   const [bio, setBio] = useState('');
   const [isLiving, setIsLiving] = useState(true);
   const [visibility, setVisibility] = useState<'family' | 'private'>('family');
@@ -89,7 +94,21 @@ export default function EditMemberScreen() {
       if (fetchError) {
         console.error('Error fetching profile:', fetchError.message);
       } else if (data) {
-        setFullName(data.full_name ?? '');
+        const full = data.full_name ?? '';
+        const parts = full.trim().split(/\s+/);
+        if (parts.length >= 3) {
+          setFirstName(parts[0]);
+          setLastName(parts[parts.length - 1]);
+          setMiddleName(parts.slice(1, -1).join(' '));
+        } else if (parts.length === 2) {
+          setFirstName(parts[0]);
+          setLastName(parts[1]);
+          setMiddleName('');
+        } else {
+          setFirstName(parts[0] || '');
+          setLastName('');
+          setMiddleName('');
+        }
         setDob(data.date_of_birth ?? '');
         setDod(data.date_of_death ?? '');
         setBio(data.bio ?? '');
@@ -101,10 +120,28 @@ export default function EditMemberScreen() {
     fetch();
   }, [id]);
 
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (selectedDate) {
+      setDob(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
+  const onDeathDateChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDeathPicker(false);
+    }
+    if (selectedDate) {
+      setDod(selectedDate.toISOString().split('T')[0]);
+    }
+  };
+
   const handleSave = async () => {
     setError('');
-    if (!fullName.trim()) {
-      setError('Full name is required');
+    if (!firstName.trim() || !lastName.trim()) {
+      setError('First and last names are required');
       return;
     }
     setSaving(true);
@@ -119,8 +156,10 @@ export default function EditMemberScreen() {
         return;
       }
 
+      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
+
       const updateData = {
-        full_name: fullName.trim(),
+        full_name: fullName,
         date_of_birth: dob || null,
         date_of_death: dod || null,
         bio: bio.trim() || null,
@@ -202,38 +241,118 @@ export default function EditMemberScreen() {
           className="flex-1"
           contentContainerClassName="px-6 pb-12"
           keyboardShouldPersistTaps="handled">
-          <View className="mb-8">
+          <View className="mb-6">
             <Input
-              label="Full Name *"
-              placeholder="e.g. Grace Adeyemi"
-              value={fullName}
-              onChangeText={setFullName}
-              error={error && !fullName.trim() ? error : ''}
+              label="First Name *"
+              placeholder="e.g. Grace"
+              value={firstName}
+              onChangeText={setFirstName}
+              error={error && !firstName.trim() ? error : ''}
+            />
+          </View>
+
+          <View className="mb-6">
+            <Input
+              label="Middle Name"
+              placeholder="Optional"
+              value={middleName}
+              onChangeText={setMiddleName}
             />
           </View>
 
           <View className="mb-8">
             <Input
-              label="Date of Birth"
-              placeholder="YYYY-MM-DD"
-              value={dob}
-              onChangeText={setDob}
-              keyboardType="numbers-and-punctuation"
+              label="Last Name *"
+              placeholder="e.g. Adeyemi"
+              value={lastName}
+              onChangeText={setLastName}
+              error={error && !lastName.trim() ? error : ''}
             />
           </View>
 
           <View className="mb-8">
-            <Input
-              label="Date of Death"
-              placeholder="YYYY-MM-DD"
-              value={dod}
-              onChangeText={(v) => {
-                setDod(v);
-                if (v) setIsLiving(false);
-              }}
-              keyboardType="numbers-and-punctuation"
-            />
+            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0]">
+              Date of Birth
+            </Text>
+            <TouchableOpacity 
+              onPress={() => setShowDatePicker(true)}
+              className="w-full bg-white border border-[#f0f2f0] rounded-2xl px-5 py-4 flex-row justify-between items-center">
+              <Text className={dob ? "text-[#1a2b21] text-base" : "text-[#c4ccc7] text-base"}>
+                {dob ? dob : "YYYY-MM-DD"}
+              </Text>
+              <Feather name="calendar" size={18} color="#6d7b73" />
+            </TouchableOpacity>
+
+            {showDatePicker && (
+              Platform.OS === 'ios' ? (
+                <View className="mt-4 overflow-hidden rounded-2xl bg-white border border-[#f0f2f0] p-4">
+                  <View className="flex-row justify-end mb-2">
+                    <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                      <Text className="text-[#8cc63f] font-bold">Done</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <DateTimePicker
+                    value={dob ? new Date(dob) : new Date(2000, 0, 1)}
+                    mode="date"
+                    display="inline"
+                    onChange={onDateChange}
+                    maximumDate={new Date()}
+                  />
+                </View>
+              ) : (
+                <DateTimePicker
+                  value={dob ? new Date(dob) : new Date(2000, 0, 1)}
+                  mode="date"
+                  display="default"
+                  onChange={onDateChange}
+                  maximumDate={new Date()}
+                />
+              )
+            )}
           </View>
+
+          {!isLiving && (
+            <View className="mb-8">
+              <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0]">
+                Date of Death
+              </Text>
+              <TouchableOpacity 
+                onPress={() => setShowDeathPicker(true)}
+                className="w-full bg-white border border-[#f0f2f0] rounded-2xl px-5 py-4 flex-row justify-between items-center">
+                <Text className={dod ? "text-[#1a2b21] text-base" : "text-[#c4ccc7] text-base"}>
+                  {dod ? dod : "YYYY-MM-DD"}
+                </Text>
+                <Feather name="calendar" size={18} color="#6d7b73" />
+              </TouchableOpacity>
+
+              {showDeathPicker && (
+                Platform.OS === 'ios' ? (
+                  <View className="mt-4 overflow-hidden rounded-2xl bg-white border border-[#f0f2f0] p-4">
+                    <View className="flex-row justify-end mb-2">
+                      <TouchableOpacity onPress={() => setShowDeathPicker(false)}>
+                        <Text className="text-[#8cc63f] font-bold">Done</Text>
+                      </TouchableOpacity>
+                    </View>
+                    <DateTimePicker
+                      value={dod ? new Date(dod) : new Date()}
+                      mode="date"
+                      display="inline"
+                      onChange={onDeathDateChange}
+                      maximumDate={new Date()}
+                    />
+                  </View>
+                ) : (
+                  <DateTimePicker
+                    value={dod ? new Date(dod) : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={onDeathDateChange}
+                    maximumDate={new Date()}
+                  />
+                )
+              )}
+            </View>
+          )}
 
           <View className="mb-10">
             <Input
