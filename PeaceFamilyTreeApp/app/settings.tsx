@@ -33,7 +33,7 @@ export default function SettingsScreen() {
     <TouchableOpacity 
       onPress={onPress}
       disabled={!onPress}
-      className="mb-3 flex-row items-center justify-between rounded-[24px] bg-white p-5 border border-gray-50 shadow-sm">
+      className="mb-3 flex-row items-center justify-between rounded-[24px] bg-white p-5 border border-gray-50">
       <View className="flex-row items-center flex-1">
         <View className={`mr-4 h-11 w-11 items-center justify-center rounded-2xl bg-gray-50`}>
           <Feather name={icon} size={20} color={color} />
@@ -68,18 +68,7 @@ export default function SettingsScreen() {
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}>
         
         <SectionTitle title="Account" />
-        <SettingItem 
-          icon="user" 
-          title="Personal Information" 
-          subtitle={user?.email}
-          onPress={() => {}}
-        />
-        <SettingItem 
-          icon="shield" 
-          title="Security" 
-          subtitle="Password, 2FA"
-          onPress={() => {}}
-        />
+
         <SettingItem 
           icon="bell" 
           title="Notifications" 
@@ -108,12 +97,7 @@ export default function SettingsScreen() {
             />
           }
         />
-        <SettingItem 
-          icon="globe" 
-          title="Language" 
-          subtitle="English (US)"
-          onPress={() => {}}
-        />
+
 
         <SectionTitle title="Support" />
         <SettingItem 
