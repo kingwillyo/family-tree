@@ -864,21 +864,25 @@ export async function generateInviteCode(
 export async function lookupInviteCode(
   code: string
 ): Promise<{ profile: Profile } | { error: string }> {
+  // Uses a SECURITY DEFINER Postgres function to bypass RLS,
+  // allowing unauthenticated (anon) users to validate an invite code.
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('invite_code', code.toUpperCase().trim())
-    .maybeSingle();
+    .rpc('lookup_profile_by_invite_code', { p_code: code.toUpperCase().trim() });
 
-  if (error) return { error: error.message };
-  if (!data) return { error: 'Invalid invite code. Please check and try again.' };
+  if (error) {
+    console.error('lookupInviteCode RPC error:', error);
+    return { error: error.message };
+  }
 
-  const expiresAt = (data as any).invite_expires_at;
+  const profile = Array.isArray(data) ? data[0] : data;
+  if (!profile) return { error: 'Invalid invite code. Please check and try again.' };
+
+  const expiresAt = profile.invite_expires_at;
   if (expiresAt && new Date(expiresAt) < new Date()) {
     return { error: 'This invite code has expired. Ask a family member to generate a new one.' };
   }
 
-  return { profile: data as Profile };
+  return { profile: profile as Profile };
 }
 
 export async function claimProfileWithCode(
