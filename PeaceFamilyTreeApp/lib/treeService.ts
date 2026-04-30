@@ -829,3 +829,98 @@ export async function deleteProfile(profileId: string): Promise<{ error?: string
   const { error } = await supabase.from('profiles').delete().eq('id', profileId);
   return error ? { error: error.message } : {};
 }
+
+// ─────────────────────────────────────────────
+// 14. Invite Codes
+// Profiles without a linked user_id can have an
+// invite code generated. When claimed, the new
+// user is linked to that profile.
+// ─────────────────────────────────────────────
+
+function generateCode(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no ambiguous chars (0,O,1,I)
+  let code = '';
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+export async function generateInviteCode(
+  profileId: string
+): Promise<{ code: string } | { error: string }> {
+  const code = generateCode();
+  const expiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString(); // 72h
+
+  const { error } = await supabase
+    .from('profiles')
+    .update({ invite_code: code, invite_expires_at: expiresAt })
+    .eq('id', profileId);
+
+  if (error) return { error: error.message };
+  return { code };
+}
+
+export async function lookupInviteCode(
+  code: string
+): Promise<{ profile: Profile } | { error: string }> {
+  // Uses a SECURITY DEFINER Postgres function to bypass RLS,
+  // allowing unauthenticated (anon) users to validate an invite code.
+  const { data, error } = await supabase
+    .rpc('lookup_profile_by_invite_code', { p_code: code.toUpperCase().trim() });
+
+  if (error) {
+    console.error('lookupInviteCode RPC error:', error);
+    return { error: error.message };
+  }
+
+  const profile = Array.isArray(data) ? data[0] : data;
+  if (!profile) return { error: 'Invalid invite code. Please check and try again.' };
+
+  const expiresAt = profile.invite_expires_at;
+  if (expiresAt && new Date(expiresAt) < new Date()) {
+    return { error: 'This invite code has expired. Ask a family member to generate a new one.' };
+  }
+
+  return { profile: profile as Profile };
+}
+
+export async function claimProfileWithCode(
+  code: string,
+  userId: string
+): Promise<{ profileId: string; familyId: string } | { error: string }> {
+  // 1. Look up the profile
+  const result = await lookupInviteCode(code);
+  if ('error' in result) return result;
+
+  const profile = result.profile;
+
+  // 2. Check it's not already claimed
+  if (profile.user_id) {
+    return { error: 'This profile is already linked to an account.' };
+  }
+
+  // 3. Get the family_id from the profile
+  const familyId = (profile as any).family_id;
+  if (!familyId) return { error: 'Profile is not associated with a family.' };
+
+  // 4. Link user_id to the profile and clear the invite code
+  const { error: profileError } = await supabase
+    .from('profiles')
+    .update({ user_id: userId, invite_code: null, invite_expires_at: null })
+    .eq('id', profile.id);
+
+  if (profileError) return { error: profileError.message };
+
+  // 5. Upsert family_members so auth context picks up the family link
+  const { error: fmError } = await supabase
+    .from('family_members')
+    .upsert(
+      { user_id: userId, profile_id: profile.id, family_id: familyId, role: 'member' },
+      { onConflict: 'user_id' }
+    );
+
+  if (fmError) return { error: fmError.message };
+
+  return { profileId: profile.id, familyId };
+}

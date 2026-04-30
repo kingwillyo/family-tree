@@ -8,7 +8,6 @@ export interface TreeFloatingControlsProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onCenter: () => void;
-  onAddMember?: () => void;
   onInvite?: () => void;
 }
 
@@ -16,7 +15,6 @@ export function TreeFloatingControls({
   onZoomIn, 
   onZoomOut, 
   onCenter,
-  onAddMember,
   onInvite
 }: TreeFloatingControlsProps) {
   const insets = useSafeAreaInsets();
@@ -71,21 +69,6 @@ export function TreeFloatingControls({
           <Feather name="send" size={22} color={isDarkMode ? '#94a3b8' : "#6b7280"} />
         </TouchableOpacity>
       </View>
-
-      {/* FLOATING FAB - RIGHT */}
-      <TouchableOpacity
-        onPress={onAddMember}
-        activeOpacity={0.8}
-        className="elevation-4 absolute right-6 z-50 h-16 w-16 items-center justify-center rounded-[20px] bg-[#3cd52e]"
-        style={{
-          bottom: bottomOffset,
-          shadowColor: '#3cd52e',
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.3,
-          shadowRadius: 16,
-        }}>
-        <Feather name="user-plus" size={28} color="white" />
-      </TouchableOpacity>
     </>
   );
 }

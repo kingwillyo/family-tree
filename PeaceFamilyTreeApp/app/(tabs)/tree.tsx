@@ -387,7 +387,6 @@ export default function TreeScreen() {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onCenter={centerTree}
-        onAddMember={() => router.push('/member/add')}
         onInvite={() => router.push('/invite')}
       />
 

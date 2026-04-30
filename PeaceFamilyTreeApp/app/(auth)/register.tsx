@@ -12,11 +12,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { useAuth } from '../../lib/auth-context';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
+
+type Mode = 'choose' | 'email' | 'otp';
 
 export default function RegisterScreen() {
   const { signInWithOtp, verifyOtp, loading } = useAuth();
-  const [step, setStep] = useState<'email' | 'otp'>('email');
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+
+  const [mode, setMode] = useState<Mode>('choose');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
@@ -37,13 +43,12 @@ export default function RegisterScreen() {
       setError('Please enter your email.');
       return;
     }
-
     const result = await signInWithOtp(email);
     if (result?.error) {
       setError(result.error.message || 'Failed to send verification code. Try again.');
       return;
     }
-    setStep('otp');
+    setMode('otp');
     setCountdown(60);
   };
 
@@ -63,118 +68,183 @@ export default function RegisterScreen() {
       setError('Please enter the verification code.');
       return;
     }
-
     const result = await verifyOtp(email, otp);
     if (result?.error) {
       setError(result.error.message || 'Invalid code. Please try again.');
     }
-    // Note: If successful, AuthContext applies the session, and _layout.tsx automatically routes to /onboarding
+    // On success, _layout.tsx navigation guard routes to /onboarding automatically
+  };
+
+  const handleBack = () => {
+    if (mode === 'email') { setMode('choose'); setError(''); }
+    else if (mode === 'otp') { setMode('email'); setError(''); }
+    else router.back();
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-slate-950">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1">
 
-        {/* Header with Back Button */}
+        {/* Header */}
         <View className="px-6 pt-4 pb-2">
-          {step === 'otp' ? (
-            <TouchableOpacity onPress={() => setStep('email')} className="w-10 h-10 justify-center">
-              <Ionicons name="arrow-back" size={24} color="black" />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity onPress={() => router.back()} className="w-10 h-10 justify-center">
-              <Ionicons name="arrow-back" size={24} color="black" />
-            </TouchableOpacity>
-          )}
+          <TouchableOpacity onPress={handleBack} className="w-10 h-10 justify-center">
+            <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#ffffff' : 'black'} />
+          </TouchableOpacity>
         </View>
 
         <ScrollView
           className="flex-1"
-          contentContainerClassName="px-6 pt-6"
+          contentContainerClassName="px-6 pt-4"
           keyboardShouldPersistTaps="handled">
 
-          {step === 'email' && (
-            <View className="flex-1">
+          {/* ── Mode: Choose ── */}
+          {mode === 'choose' && (
+            <View>
+              {/* Title */}
               <View className="mb-10">
-                <Text className="mb-3 text-3xl font-bold text-gray-900">What's your email?</Text>
-                <Text className="text-base text-gray-500">A verification code will be sent to your email.</Text>
+                <Text className="text-[32px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                  Create Account
+                </Text>
+                <Text className="mt-2 text-base text-gray-500 dark:text-slate-400">
+                  Are you starting a new family tree or joining an existing one?
+                </Text>
               </View>
 
-              <View>
-                <Input
-                  placeholder="Enter email address"
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  value={email}
-                  onChangeText={setEmail}
-                />
-
-                {error ? (
-                  <View className="mb-4 rounded-xl bg-red-50 p-4">
-                    <Text className="text-sm font-semibold text-red-600">{error}</Text>
-                  </View>
-                ) : null}
-
-                <Button
-                  title="Continue"
-                  onPress={handleSendOtp}
-                  loading={loading}
-                  className="mt-2"
-                />
-
-                <View className="mt-8 flex-row items-center">
-                  <View className="flex-1 h-[1px] bg-gray-200" />
-                  <Text className="mx-4 text-gray-400">or</Text>
-                  <View className="flex-1 h-[1px] bg-gray-200" />
+              {/* Option A: Start New Family */}
+              <TouchableOpacity
+                onPress={() => setMode('email')}
+                activeOpacity={0.85}
+                className="mb-4 flex-row items-center rounded-[24px] border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5"
+                style={{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}>
+                <View className="h-14 w-14 rounded-full bg-emerald-50 dark:bg-emerald-950/30 items-center justify-center mr-4">
+                  <Feather name="git-branch" size={24} color="#059669" />
                 </View>
+                <View className="flex-1">
+                  <Text className="text-[17px] font-bold text-gray-900 dark:text-white mb-0.5">
+                    Start New Family
+                  </Text>
+                  <Text className="text-[13px] text-gray-500 dark:text-slate-400" numberOfLines={2}>
+                    Create a new family tree and invite relatives to join.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={isDarkMode ? '#475569' : '#9ca3af'} />
+              </TouchableOpacity>
 
-                {/* Optional Social Buttons could go here */}
+              {/* Option B: Join Family */}
+              <TouchableOpacity
+                onPress={() => router.push('/(auth)/join-with-code')}
+                activeOpacity={0.85}
+                className="flex-row items-center rounded-[24px] border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5"
+                style={{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}>
+                <View className="h-14 w-14 rounded-full bg-emerald-50 dark:bg-emerald-950/30 items-center justify-center mr-4">
+                  <Feather name="key" size={24} color="#059669" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-[17px] font-bold text-gray-900 dark:text-white mb-0.5">
+                    Join Family
+                  </Text>
+                  <Text className="text-[13px] text-gray-500 dark:text-slate-400" numberOfLines={2}>
+                    Got an invite code? Enter it to join your family's tree.
+                  </Text>
+                </View>
+                <Feather name="chevron-right" size={20} color={isDarkMode ? '#475569' : '#9ca3af'} />
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View className="mt-10 flex-row items-center">
+                <View className="flex-1 h-[1px] bg-gray-100 dark:bg-slate-800" />
+                <Text className="mx-4 text-gray-400 dark:text-slate-500 text-sm">already have an account?</Text>
+                <View className="flex-1 h-[1px] bg-gray-100 dark:bg-slate-800" />
               </View>
+              <Link href="/(auth)/login" asChild>
+                <TouchableOpacity className="mt-4 items-center py-3">
+                  <Text className="text-[15px] font-bold text-emerald-600">Log In</Text>
+                </TouchableOpacity>
+              </Link>
             </View>
           )}
 
-          {step === 'otp' && (
-            <View className="flex-1">
+          {/* ── Mode: Email ── */}
+          {mode === 'email' && (
+            <View>
               <View className="mb-10">
-                <Text className="mb-3 text-3xl font-bold text-gray-900">Enter verification code</Text>
-                <Text className="text-base text-gray-500">We've sent a code to {email}</Text>
+                <Text className="mb-3 text-[28px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                  What's your email?
+                </Text>
+                <Text className="text-base text-gray-500 dark:text-slate-400">
+                  A verification code will be sent to your email.
+                </Text>
               </View>
 
-              <View>
-                <Input
-                  placeholder="6-digit code"
-                  keyboardType="number-pad"
-                  value={otp}
-                  onChangeText={setOtp}
-                  maxLength={6}
-                />
+              <Input
+                placeholder="Enter email address"
+                autoCapitalize="none"
+                keyboardType="email-address"
+                value={email}
+                onChangeText={setEmail}
+              />
 
-                {error ? (
-                  <View className="mb-4 rounded-xl bg-red-50 p-4">
-                    <Text className="text-sm font-semibold text-red-600">{error}</Text>
-                  </View>
-                ) : null}
-
-                <View className="mb-4 flex-row items-center justify-between px-2">
-                  <Text className="text-gray-500">
-                    {countdown > 0 ? `Resend code in ${countdown}s` : "Didn't receive a code?"}
-                  </Text>
-                  {countdown === 0 && (
-                    <TouchableOpacity onPress={handleResendOtp}>
-                      <Text className="font-semibold text-emerald-600">Resend</Text>
-                    </TouchableOpacity>
-                  )}
+              {error ? (
+                <View className="mb-4 rounded-xl bg-red-50 dark:bg-red-950/20 p-4">
+                  <Text className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</Text>
                 </View>
+              ) : null}
 
-                <Button
-                  title="Continue"
-                  onPress={handleVerifyOtp}
-                  loading={loading}
-                  className="mt-2"
-                />
+              <Button
+                title="Continue"
+                onPress={handleSendOtp}
+                loading={loading}
+                className="mt-2"
+              />
+            </View>
+          )}
+
+          {/* ── Mode: OTP ── */}
+          {mode === 'otp' && (
+            <View>
+              <View className="mb-10">
+                <Text className="mb-3 text-[28px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                  Enter verification code
+                </Text>
+                <Text className="text-base text-gray-500 dark:text-slate-400">
+                  We've sent a code to{' '}
+                  <Text className="font-bold text-gray-700 dark:text-white">{email}</Text>
+                </Text>
               </View>
+
+              <Input
+                placeholder="6-digit code"
+                keyboardType="number-pad"
+                value={otp}
+                onChangeText={setOtp}
+                maxLength={6}
+              />
+
+              {error ? (
+                <View className="mb-4 rounded-xl bg-red-50 dark:bg-red-950/20 p-4">
+                  <Text className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</Text>
+                </View>
+              ) : null}
+
+              <View className="mb-4 flex-row items-center justify-between px-2">
+                <Text className="text-gray-500 dark:text-slate-400">
+                  {countdown > 0 ? `Resend code in ${countdown}s` : "Didn't receive a code?"}
+                </Text>
+                {countdown === 0 && (
+                  <TouchableOpacity onPress={handleResendOtp}>
+                    <Text className="font-semibold text-emerald-600">Resend</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              <Button
+                title="Continue"
+                onPress={handleVerifyOtp}
+                loading={loading}
+                className="mt-2"
+              />
             </View>
           )}
 
