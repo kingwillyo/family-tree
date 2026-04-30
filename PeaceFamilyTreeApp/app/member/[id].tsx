@@ -428,8 +428,8 @@ export default function MemberProfileScreen() {
     }
     const code = result.code;
     await Share.share({
-      message: `You've been added to our family tree! Download the Peace Family Tree app, tap "Create Account" → "Join Family", and enter your invite code:\n\n${code}\n\nThis code expires in 72 hours.`,
-      title: 'Join the Family Tree',
+      message: `You've been added to our LineageX family tree! Download the LineageX app, tap "Create Account" → "Join Family", and enter your invite code:\n\n${code}\n\nThis code expires in 72 hours.`,
+      title: 'Join LineageX',
     });
   };
 

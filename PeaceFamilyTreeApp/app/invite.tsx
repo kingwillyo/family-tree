@@ -38,15 +38,15 @@ export default function InviteScreen() {
     }
 
     // In production, use your app's deep-link scheme from app.json
-    const link = `peacefamilytree://invite?token=${token}`;
+    const link = `lineagex://invite?token=${token}`;
     setInviteLink(link);
   };
 
   const handleShare = async () => {
     if (!inviteLink) return;
     await Share.share({
-      message: `You've been invited to join the Peace Family Tree! Open this link to accept: ${inviteLink}`,
-      title: 'Family Tree Invite',
+      message: `You've been invited to join LineageX! Open this link to accept: ${inviteLink}`,
+      title: 'LineageX Invite',
     });
   };
 

@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "my-expo-app",
-    "slug": "family-tree",
-    "scheme": "family-tree",
+    "name": "LineageX",
+    "slug": "lineagex",
+    "scheme": "lineagex",
     "version": "1.0.0",
     "web": {
       "favicon": "./assets/file.png"

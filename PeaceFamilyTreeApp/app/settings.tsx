@@ -122,7 +122,7 @@ export default function SettingsScreen() {
         </View>
 
         <Text className="mt-8 text-center text-[12px] font-medium text-gray-300">
-          Peace Family Tree &copy; 2026
+          LineageX &copy; 2026
         </Text>
       </ScrollView>
     </SafeAreaView>

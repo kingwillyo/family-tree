@@ -295,7 +295,7 @@ export default function JoinWithCodeScreen() {
                 {loading ? (
                   <ActivityIndicator color="white" />
                 ) : (
-                  <Text className="text-[16px] font-bold text-white">Join Family Tree</Text>
+                  <Text className="text-[16px] font-bold text-white">Join LineageX</Text>
                 )}
               </TouchableOpacity>
             </View>
