@@ -18,6 +18,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { useColorScheme } from 'nativewind';
 
 import { useAuth } from '../../lib/auth-context';
 import {
@@ -91,6 +92,8 @@ interface AddTimelineModalProps {
 }
 
 function AddTimelineModal({ visible, onClose, onSave, saving }: AddTimelineModalProps) {
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
   const [icon, setIcon] = useState('circle');
   const [year, setYear] = useState('');
   const [title, setTitle] = useState('');
@@ -115,15 +118,15 @@ function AddTimelineModal({ visible, onClose, onSave, saving }: AddTimelineModal
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-end">
-        <View className="rounded-t-[32px] bg-white px-6 pt-6 pb-10"
+        <View className="rounded-t-[32px] bg-white dark:bg-slate-900 px-6 pt-6 pb-10"
           style={{ shadowColor: '#000', shadowOpacity: 0.15, shadowRadius: 24, elevation: 16 }}>
           {/* Handle */}
-          <View className="mb-5 self-center h-1 w-12 rounded-full bg-gray-200" />
+          <View className="mb-5 self-center h-1 w-12 rounded-full bg-gray-200 dark:bg-slate-800" />
 
-          <Text className="mb-5 text-[20px] font-bold text-gray-900">Add Life Event</Text>
+          <Text className="mb-5 text-[20px] font-bold text-gray-900 dark:text-white">Add Life Event</Text>
 
           {/* Icon Picker */}
-          <Text className="mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400">
+          <Text className="mb-2 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">
             Event Type
           </Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-5 -mx-1">
@@ -131,9 +134,9 @@ function AddTimelineModal({ visible, onClose, onSave, saving }: AddTimelineModal
               <TouchableOpacity
                 key={opt.name}
                 onPress={() => setIcon(opt.name)}
-                className={`mx-1 items-center rounded-2xl px-3 py-2 ${icon === opt.name ? 'bg-[#f0f9ed]' : 'bg-gray-50'}`}>
-                <Feather name={opt.name as any} size={20} color={icon === opt.name ? '#059669' : '#9ca3af'} />
-                <Text className={`mt-1 text-[10px] font-bold ${icon === opt.name ? 'text-[#059669]' : 'text-gray-400'}`}>
+                className={`mx-1 items-center rounded-2xl px-3 py-2 ${icon === opt.name ? 'bg-[#f0f9ed] dark:bg-emerald-950/20' : 'bg-gray-50 dark:bg-slate-800'}`}>
+                <Feather name={opt.name as any} size={20} color={icon === opt.name ? '#059669' : (isDarkMode ? '#475569' : '#9ca3af')} />
+                <Text className={`mt-1 text-[10px] font-bold ${icon === opt.name ? 'text-[#059669]' : 'text-gray-400 dark:text-slate-500'}`}>
                   {opt.label}
                 </Text>
               </TouchableOpacity>
@@ -141,44 +144,48 @@ function AddTimelineModal({ visible, onClose, onSave, saving }: AddTimelineModal
           </ScrollView>
 
           {/* Year */}
-          <Text className="mb-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">Year *</Text>
+          <Text className="mb-1 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">Year *</Text>
           <TextInput
             value={year}
             onChangeText={setYear}
             placeholder="e.g. 1985"
+            placeholderTextColor={isDarkMode ? '#475569' : "#9ca3af"}
             keyboardType="number-pad"
             maxLength={4}
-            className="mb-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-[15px] text-gray-900"
+            className="mb-4 rounded-2xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 px-4 py-3 text-[15px] text-gray-900 dark:text-white"
           />
 
           {/* Title */}
-          <Text className="mb-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">Title *</Text>
+          <Text className="mb-1 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">Title *</Text>
           <TextInput
             value={title}
             onChangeText={setTitle}
             placeholder="e.g. Graduated from Cambridge"
-            className="mb-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-[15px] text-gray-900"
+            placeholderTextColor={isDarkMode ? '#475569' : "#9ca3af"}
+            className="mb-4 rounded-2xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 px-4 py-3 text-[15px] text-gray-900 dark:text-white"
           />
 
           {/* Date Label */}
-          <Text className="mb-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">Date / Location</Text>
+          <Text className="mb-1 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">Date / Location</Text>
           <TextInput
             value={dateLabel}
             onChangeText={setDateLabel}
             placeholder="e.g. JUNE 15 • CAMBRIDGE"
+            placeholderTextColor={isDarkMode ? '#475569' : "#9ca3af"}
             autoCapitalize="characters"
-            className="mb-4 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-[15px] text-gray-900"
+            className="mb-4 rounded-2xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 px-4 py-3 text-[15px] text-gray-900 dark:text-white"
           />
 
           {/* Description */}
-          <Text className="mb-1 text-[11px] font-bold uppercase tracking-widest text-gray-400">Description</Text>
+          <Text className="mb-1 text-[11px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">Description</Text>
           <TextInput
             value={description}
             onChangeText={setDescription}
             placeholder="Add a note about this moment…"
+            placeholderTextColor={isDarkMode ? '#475569' : "#9ca3af"}
             multiline
             numberOfLines={3}
-            className="mb-5 rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3 text-[15px] text-gray-900"
+            className="mb-5 rounded-2xl border border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 px-4 py-3 text-[15px] text-gray-900 dark:text-white"
             style={{ textAlignVertical: 'top', minHeight: 72 }}
           />
 
@@ -187,8 +194,8 @@ function AddTimelineModal({ visible, onClose, onSave, saving }: AddTimelineModal
           <View className="flex-row gap-3">
             <TouchableOpacity
               onPress={onClose}
-              className="flex-1 items-center rounded-2xl border border-gray-200 py-4">
-              <Text className="text-[15px] font-bold text-gray-400">Cancel</Text>
+              className="flex-1 items-center rounded-2xl border border-gray-200 dark:border-slate-800 py-4">
+              <Text className="text-[15px] font-bold text-gray-400 dark:text-slate-600">Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity
               onPress={handleSave}
@@ -239,6 +246,8 @@ export default function MemberProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
@@ -447,19 +456,19 @@ export default function MemberProfileScreen() {
   // ── Skeleton ─────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 bg-[#fcFAF8]" edges={['top']}>
+      <SafeAreaView className="flex-1 bg-[#fcFAF8] dark:bg-slate-950" edges={['top']}>
         <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
           <TouchableOpacity onPress={() => router.back()} className="-ml-2 p-2">
-            <Feather name="chevron-left" size={28} color="#111827" />
+            <Feather name="chevron-left" size={28} color={isDarkMode ? '#ffffff' : "#111827"} />
           </TouchableOpacity>
         </View>
         <ScrollView contentContainerStyle={{ paddingBottom: 100, alignItems: 'center', paddingTop: 16 }}>
-          <Animated.View style={{ opacity: shimmerOpacity }} className="mb-6 h-[140px] w-[140px] rounded-full bg-gray-200" />
-          <Animated.View style={{ opacity: shimmerOpacity }} className="mb-3 h-8 w-56 rounded-2xl bg-gray-200" />
-          <Animated.View style={{ opacity: shimmerOpacity }} className="mb-8 h-5 w-32 rounded-xl bg-gray-100" />
+          <Animated.View style={{ opacity: shimmerOpacity }} className="mb-6 h-[140px] w-[140px] rounded-full bg-gray-200 dark:bg-slate-800" />
+          <Animated.View style={{ opacity: shimmerOpacity }} className="mb-3 h-8 w-56 rounded-2xl bg-gray-200 dark:bg-slate-800" />
+          <Animated.View style={{ opacity: shimmerOpacity }} className="mb-8 h-5 w-32 rounded-xl bg-gray-100 dark:bg-slate-900" />
           <View className="w-full flex-row justify-center gap-3 px-6">
             {[0, 1, 2].map((i) => (
-              <Animated.View key={i} style={{ opacity: shimmerOpacity, flex: 0.33 }} className="h-20 rounded-[28px] bg-gray-100" />
+              <Animated.View key={i} style={{ opacity: shimmerOpacity, flex: 0.33 }} className="h-20 rounded-[28px] bg-gray-100 dark:bg-slate-900" />
             ))}
           </View>
         </ScrollView>
@@ -469,8 +478,8 @@ export default function MemberProfileScreen() {
 
   if (!profile) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-[#fcFAF8]" edges={['top']}>
-        <Text className="text-gray-400">Member not found.</Text>
+      <SafeAreaView className="flex-1 items-center justify-center bg-[#fcFAF8] dark:bg-slate-950" edges={['top']}>
+        <Text className="text-gray-400 dark:text-slate-500">Member not found.</Text>
         <TouchableOpacity onPress={() => router.back()} className="mt-4 p-3">
           <Text className="text-[#059669] font-bold">Go Back</Text>
         </TouchableOpacity>
@@ -481,15 +490,15 @@ export default function MemberProfileScreen() {
   const itemSize = (width - 48 - 16) / 3;
 
   return (
-    <SafeAreaView className="flex-1 bg-[#fcFAF8]" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-[#fcFAF8] dark:bg-slate-950" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
         <TouchableOpacity onPress={() => router.back()} className="-ml-2 p-2">
-          <Feather name="chevron-left" size={28} color="#111827" />
+          <Feather name="chevron-left" size={28} color={isDarkMode ? '#ffffff' : "#111827"} />
         </TouchableOpacity>
         <View className="flex-row items-center gap-4">
           <TouchableOpacity>
-            <Feather name="share" size={24} color="#111827" />
+            <Feather name="share" size={24} color={isDarkMode ? '#ffffff' : "#111827"} />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => {
             if (!profile) return;
@@ -536,7 +545,7 @@ export default function MemberProfileScreen() {
             options.push({ text: 'Cancel', style: 'cancel' });
             Alert.alert('Profile Options', '', options);
           }}>
-            <Feather name="more-horizontal" size={24} color="#111827" />
+            <Feather name="more-horizontal" size={24} color={isDarkMode ? '#ffffff' : "#111827"} />
           </TouchableOpacity>
         </View>
       </View>
@@ -551,8 +560,8 @@ export default function MemberProfileScreen() {
           {/* Avatar */}
           <View className="relative mb-6">
             <View 
-              className="h-[140px] w-[140px] overflow-hidden rounded-full border-4 bg-orange-100"
-              style={{ borderColor: profile.role === 'admin' ? '#FFD700' : '#fcFAF8' }}>
+              className="h-[140px] w-[140px] overflow-hidden rounded-full border-4 bg-orange-100 dark:bg-orange-950/20"
+              style={{ borderColor: profile.role === 'admin' ? '#FFD700' : (isDarkMode ? '#1e293b' : '#fcFAF8') }}>
               {avatarUploading ? (
                 <View className="flex-1 items-center justify-center">
                   <ActivityIndicator size="small" color="#8cc63f" />
@@ -561,11 +570,11 @@ export default function MemberProfileScreen() {
                 <Image
                   source={{ uri: profile.avatar_url }}
                   className="h-full w-full"
-                  style={{ backgroundColor: '#eccdae' }}
+                  style={{ backgroundColor: isDarkMode ? '#1e293b' : '#eccdae' }}
                 />
               ) : (
-                <View className="flex-1 items-center justify-center bg-orange-100">
-                  <Text className="text-5xl font-extrabold text-orange-300">
+                <View className="flex-1 items-center justify-center bg-orange-100 dark:bg-orange-900/30">
+                  <Text className="text-5xl font-extrabold text-orange-300 dark:text-orange-700">
                     {profile.full_name?.[0]?.toUpperCase() ?? '?'}
                   </Text>
                 </View>
@@ -575,28 +584,28 @@ export default function MemberProfileScreen() {
               onPress={handleAvatarPress}
               activeOpacity={0.7}
               disabled={avatarUploading}
-              className="absolute -bottom-1 -right-1 h-12 w-12 items-center justify-center rounded-full border-4 border-[#fcFAF8] bg-[#8cc63f]">
+              className="absolute -bottom-1 -right-1 h-12 w-12 items-center justify-center rounded-full border-4 border-[#fcFAF8] dark:border-slate-950 bg-[#8cc63f]">
               <Feather name="camera" size={16} color="white" />
             </TouchableOpacity>
           </View>
 
           {/* Name & Dates */}
-          <Text className="mb-2 px-8 text-center text-[32px] font-extrabold leading-[38px] text-[#111827]">
+          <Text className="mb-2 px-8 text-center text-[32px] font-extrabold leading-[38px] text-[#111827] dark:text-white">
             {profile.full_name}
           </Text>
-          <Text className="mb-6 text-[17px] font-medium text-gray-400">
+          <Text className="mb-6 text-[17px] font-medium text-gray-400 dark:text-slate-500">
             {formatDates(profile)}
           </Text>
 
           {/* Badges */}
           <View className="mb-8 flex-row items-center justify-center gap-3 flex-wrap px-4">
-            <View className="rounded-full border border-gray-100 bg-white px-4 py-2">
-              <Text className="text-[11px] font-bold tracking-widest text-gray-500">
+            <View className="rounded-full border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2">
+              <Text className="text-[11px] font-bold tracking-widest text-gray-500 dark:text-slate-400">
                 {getRoleBadge(profile)}
               </Text>
             </View>
-            <View className="rounded-full border border-gray-100 bg-white px-4 py-2">
-              <Text className="text-[11px] font-bold tracking-widest text-gray-500">
+            <View className="rounded-full border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2">
+              <Text className="text-[11px] font-bold tracking-widest text-gray-500 dark:text-slate-400">
                 {stats.connectionsCount} CONNECTIONS
               </Text>
             </View>
@@ -611,9 +620,9 @@ export default function MemberProfileScreen() {
             ].map((stat, idx) => (
               <View
                 key={idx}
-                className="flex-[0.33] items-center rounded-[28px] border border-gray-100 bg-white py-4">
-                <Text className="mb-1 text-2xl font-bold text-gray-900">{stat.value}</Text>
-                <Text className="text-[9px] font-bold tracking-wider text-gray-400">
+                className="flex-[0.33] items-center rounded-[28px] border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 py-4">
+                <Text className="mb-1 text-2xl font-bold text-gray-900 dark:text-white">{stat.value}</Text>
+                <Text className="text-[9px] font-bold tracking-wider text-gray-400 dark:text-slate-500">
                   {stat.label}
                 </Text>
               </View>
@@ -623,11 +632,11 @@ export default function MemberProfileScreen() {
           {/* Bio Section */}
           {profile.bio ? (
             <View className="mb-10 w-full px-6">
-              <Text className="mb-3 text-[14px] font-bold uppercase tracking-widest text-gray-400">
+              <Text className="mb-3 text-[14px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">
                 Life Summary
               </Text>
-              <View className="rounded-[24px] bg-white p-6 border border-gray-100">
-                <Text className="text-[16px] leading-[26px] text-gray-600">
+              <View className="rounded-[24px] bg-white dark:bg-slate-900 p-6 border border-gray-100 dark:border-slate-800">
+                <Text className="text-[16px] leading-[26px] text-gray-600 dark:text-slate-400">
                   {profile.bio}
                 </Text>
               </View>
@@ -638,10 +647,10 @@ export default function MemberProfileScreen() {
         {/* ── Life Timeline Section ─────────────────────────────────── */}
         <View className="mb-12 px-6">
           <View className="mb-8 flex-row items-center justify-between">
-            <Text className="text-[22px] font-bold text-gray-900">Life Timeline</Text>
+            <Text className="text-[22px] font-bold text-gray-900 dark:text-white">Life Timeline</Text>
             <TouchableOpacity
               onPress={() => setShowTimelineModal(true)}
-              className="h-10 w-10 items-center justify-center rounded-full bg-[#f0f9ed]">
+              className="h-10 w-10 items-center justify-center rounded-full bg-[#f0f9ed] dark:bg-emerald-950/20">
               <Feather name="plus" size={20} color="#059669" />
             </TouchableOpacity>
           </View>
@@ -649,9 +658,9 @@ export default function MemberProfileScreen() {
           {timeline.length === 0 ? (
             <TouchableOpacity
               onPress={() => setShowTimelineModal(true)}
-              className="items-center rounded-3xl border-2 border-dashed border-gray-200 py-10">
-              <Feather name="clock" size={28} color="#d1d5db" />
-              <Text className="mt-3 text-[13px] font-semibold text-gray-300">Add the first life event</Text>
+              className="items-center rounded-3xl border-2 border-dashed border-gray-200 dark:border-slate-800 py-10">
+              <Feather name="clock" size={28} color={isDarkMode ? '#334155' : "#d1d5db"} />
+              <Text className="mt-3 text-[13px] font-semibold text-gray-300 dark:text-slate-600">Add the first life event</Text>
             </TouchableOpacity>
           ) : (
             <View className="pl-[20px]">
@@ -660,24 +669,24 @@ export default function MemberProfileScreen() {
                 return (
                   <View key={item.id} className="relative mb-6">
                     {!isLast && (
-                      <View className="absolute bottom-[-40px] left-[3px] top-[40px] w-[2px] bg-gray-200" />
+                      <View className="absolute bottom-[-40px] left-[3px] top-[40px] w-[2px] bg-gray-200 dark:bg-slate-800" />
                     )}
-                    <View className="absolute left-[-20px] top-6 z-10 h-10 w-10 items-center justify-center rounded-full border border-gray-100 bg-white">
+                    <View className="absolute left-[-20px] top-6 z-10 h-10 w-10 items-center justify-center rounded-full border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                       <Feather
                         name={(item.icon as any) || 'circle'}
                         size={16}
-                        color={index === 0 ? '#059669' : '#d1d5db'}
+                        color={index === 0 ? '#059669' : (isDarkMode ? '#475569' : '#d1d5db')}
                       />
                     </View>
                     <TouchableOpacity 
                       onLongPress={() => handleDeleteTimelineEvent(item)}
                       delayLongPress={500}
-                      className="ml-[36px] rounded-[24px] border border-gray-100 bg-white p-5">
+                      className="ml-[36px] rounded-[24px] border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
                       <View className="mb-1 flex-row items-start justify-between">
-                        <Text className="flex-1 pr-2 text-[17px] font-bold text-gray-900">
+                        <Text className="flex-1 pr-2 text-[17px] font-bold text-gray-900 dark:text-white">
                           {item.title}
                         </Text>
-                        <Text className="text-[13px] font-semibold text-gray-300">{item.year}</Text>
+                        <Text className="text-[13px] font-semibold text-gray-300 dark:text-slate-600">{item.year}</Text>
                       </View>
                       {item.date_label ? (
                         <Text className="mb-3 text-[11px] font-bold uppercase tracking-widest text-[#059669]">
@@ -685,7 +694,7 @@ export default function MemberProfileScreen() {
                         </Text>
                       ) : null}
                       {item.description ? (
-                        <Text className="text-[15px] leading-[22px] text-gray-500">
+                        <Text className="text-[15px] leading-[22px] text-gray-500 dark:text-slate-400">
                           {item.description}
                         </Text>
                       ) : null}
@@ -700,7 +709,7 @@ export default function MemberProfileScreen() {
         {/* ── Media Gallery Section ──────────────────────────────────── */}
         <View className="mb-12 px-6">
           <View className="mb-6 flex-row items-center justify-between">
-            <Text className="text-[22px] font-bold text-gray-900">Media Gallery</Text>
+            <Text className="text-[22px] font-bold text-gray-900 dark:text-white">Media Gallery</Text>
             <TouchableOpacity onPress={() => router.push(`/member/gallery/${id}`)}>
               <Text className="text-[12px] font-bold uppercase tracking-wider text-[#059669]">
                 VIEW ALL
@@ -715,8 +724,8 @@ export default function MemberProfileScreen() {
                   <View
                     key={m.id ?? idx}
                     style={{ width: itemSize, height: itemSize }}
-                    className="items-center justify-center rounded-[24px] bg-[#f0f9ed]">
-                    <View className="mb-2 h-10 w-10 items-center justify-center rounded-full bg-white">
+                    className="items-center justify-center rounded-[24px] bg-[#f0f9ed] dark:bg-emerald-950/20">
+                    <View className="mb-2 h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-900">
                       <Feather name="mic" size={18} color="#059669" />
                     </View>
                     <Text className="text-[9px] font-bold uppercase tracking-widest text-[#059669]">
@@ -735,7 +744,7 @@ export default function MemberProfileScreen() {
                   onPress={() => setPreviewImage(imageUrl)}
                   activeOpacity={0.9}
                   style={{ width: itemSize, height: itemSize }}
-                  className="overflow-hidden rounded-[24px] bg-gray-200">
+                  className="overflow-hidden rounded-[24px] bg-gray-200 dark:bg-slate-800">
                   <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />
                 </TouchableOpacity>
               );
@@ -747,11 +756,11 @@ export default function MemberProfileScreen() {
                 onPress={handleMediaAdd}
                 disabled={mediaUploading}
                 style={{ width: itemSize, height: itemSize }}
-                className="items-center justify-center rounded-[24px] border-2 border-dashed border-gray-200">
+                className="items-center justify-center rounded-[24px] border-2 border-dashed border-gray-200 dark:border-slate-800">
                 {mediaUploading ? (
                   <ActivityIndicator size="small" color="#d1d5db" />
                 ) : (
-                  <Feather name="plus" size={24} color="#d1d5db" />
+                  <Feather name="plus" size={24} color={isDarkMode ? '#334155' : "#d1d5db"} />
                 )}
               </TouchableOpacity>
             )}
@@ -761,8 +770,8 @@ export default function MemberProfileScreen() {
               <TouchableOpacity
                 onPress={() => router.push(`/member/gallery/${id}`)}
                 style={{ width: itemSize, height: itemSize }}
-                className="items-center justify-center rounded-[24px] bg-gray-100">
-                <Text className="text-[18px] font-bold text-gray-400">+{media.length - 5}</Text>
+                className="items-center justify-center rounded-[24px] bg-gray-100 dark:bg-slate-900">
+                <Text className="text-[18px] font-bold text-gray-400 dark:text-slate-600">+{media.length - 5}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -770,11 +779,11 @@ export default function MemberProfileScreen() {
 
         {/* ── Family Connections Section ─────────────────────────────── */}
         <View className="overflow-visible px-6">
-          <Text className="mb-6 text-[22px] font-bold text-gray-900">Family Connections</Text>
+          <Text className="mb-6 text-[22px] font-bold text-gray-900 dark:text-white">Family Connections</Text>
 
           {connections.length === 0 ? (
             <View className="items-center py-6">
-              <Text className="text-[13px] text-gray-300">No connections yet.</Text>
+              <Text className="text-[13px] text-gray-300 dark:text-slate-600">No connections yet.</Text>
             </View>
           ) : (
             <ScrollView
@@ -786,7 +795,7 @@ export default function MemberProfileScreen() {
                   key={conn.profile.id ?? idx}
                   onPress={() => router.push(`/member/${conn.profile.id}`)}
                   className="mr-6 items-center">
-                  <View className="mb-3 h-[80px] w-[80px] overflow-hidden rounded-full border-[3px] border-white bg-gray-100">
+                  <View className="mb-3 h-[80px] w-[80px] overflow-hidden rounded-full border-[3px] border-white dark:border-slate-950 bg-gray-100 dark:bg-slate-900">
                     {conn.profile.avatar_url ? (
                       <Image source={{ uri: conn.profile.avatar_url }} className="h-full w-full" />
                     ) : (

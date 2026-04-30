@@ -3,6 +3,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { AuthProvider, useAuth } from '../lib/auth-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StatusBar } from 'expo-status-bar';
 import {
   ReactNativeGrabRoot,
   ReactNativeGrabScreen,
@@ -61,6 +62,7 @@ export default function RootLayout() {
     <ReactNativeGrabRoot>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
+        <StatusBar style="auto" />
         <LayoutContent />
       </AuthProvider>
     </GestureHandlerRootView>

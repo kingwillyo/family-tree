@@ -15,7 +15,7 @@
     ],
     "orientation": "portrait",
     "icon": "./assets/pkg.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "splash": {
       "image": "./assets/file.png",
       "resizeMode": "contain",

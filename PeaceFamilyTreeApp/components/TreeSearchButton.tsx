@@ -3,6 +3,7 @@ import { View, TouchableOpacity, TextInput, Dimensions, StyleSheet } from 'react
 import { GlassView, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { BlurView } from 'expo-blur';
 import { Feather } from '@expo/vector-icons';
+import { useColorScheme } from 'nativewind';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -23,6 +24,8 @@ export function TreeSearchButton({ onSearch }: TreeSearchButtonProps) {
   const [query, setQuery] = useState('');
   const inputRef = useRef<TextInput>(null);
   const isGlass = isLiquidGlassAvailable();
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
   const expanded = useSharedValue(0);
 
@@ -77,15 +80,15 @@ export function TreeSearchButton({ onSearch }: TreeSearchButtonProps) {
       className="flex-1 flex-row items-center px-4"
       style={{ height: BUTTON_SIZE }}>
       <View className="h-10 w-10 items-center justify-center">
-        <Feather name="search" size={22} color="#374151" />
+        <Feather name="search" size={22} color={isDarkMode ? '#ffffff' : "#374151"} />
       </View>
       
       <Animated.View style={[{ overflow: 'hidden' }, animatedInputStyle]}>
         <TextInput
           ref={inputRef}
-          className="h-full text-base font-semibold text-gray-800"
+          className="h-full text-base font-semibold text-gray-800 dark:text-white"
           placeholder="Find a relative..."
-          placeholderTextColor="#6b7280"
+          placeholderTextColor={isDarkMode ? '#94a3b8' : "#6b7280"}
           value={query}
           onChangeText={handleSearch}
         />
@@ -95,7 +98,7 @@ export function TreeSearchButton({ onSearch }: TreeSearchButtonProps) {
         <TouchableOpacity 
           onPress={handleClose}
           className="ml-auto h-10 w-10 items-center justify-center">
-          <Feather name="x" size={20} color="#6b7280" />
+          <Feather name="x" size={20} color={isDarkMode ? '#94a3b8' : "#6b7280"} />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -115,14 +118,14 @@ export function TreeSearchButton({ onSearch }: TreeSearchButtonProps) {
         animatedContainerStyle,
       ]}>
       {isGlass ? (
-        <GlassView glassEffectStyle="regular" colorScheme="light" style={StyleSheet.absoluteFill}>
+        <GlassView glassEffectStyle="regular" colorScheme={isDarkMode ? "dark" : "light"} style={StyleSheet.absoluteFill}>
           {content}
         </GlassView>
       ) : (
         <BlurView
           intensity={70}
-          tint="light"
-          style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(255, 255, 255, 0.4)' }]}>
+          tint={isDarkMode ? 'dark' : 'light'}
+          style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.4)' : 'rgba(255, 255, 255, 0.4)' }]}>
           {content}
         </BlurView>
       )}
