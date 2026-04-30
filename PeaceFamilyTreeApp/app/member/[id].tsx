@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Share } from 'react-native';
 import {
   ActivityIndicator,
   Alert,
@@ -39,6 +40,7 @@ import {
   createProposal,
   fetchCurrentProfile,
   deleteProfile,
+  generateInviteCode,
 } from '../../lib/treeService';
 
 const { width } = Dimensions.get('window');
@@ -416,6 +418,21 @@ export default function MemberProfileScreen() {
     setTimelineSaving(false);
   };
 
+  // ── Invite to App ────────────────────────────────────────────────────────
+  const handleInviteToApp = async () => {
+    if (!id) return;
+    const result = await generateInviteCode(id);
+    if ('error' in result) {
+      Alert.alert('Error', result.error);
+      return;
+    }
+    const code = result.code;
+    await Share.share({
+      message: `You've been added to our family tree! Download the Peace Family Tree app, tap "Create Account" → "Join Family", and enter your invite code:\n\n${code}\n\nThis code expires in 72 hours.`,
+      title: 'Join the Family Tree',
+    });
+  };
+
   const handleDeleteTimelineEvent = async (event: TimelineEvent) => {
     if (!user || !id || !profile) return;
 
@@ -609,6 +626,17 @@ export default function MemberProfileScreen() {
                 {stats.connectionsCount} CONNECTIONS
               </Text>
             </View>
+            {/* Invite badge — only shown for profiles without a linked account */}
+            {!profile.user_id && (
+              <TouchableOpacity
+                onPress={handleInviteToApp}
+                className="flex-row items-center gap-1.5 rounded-full border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/20 px-4 py-2">
+                <Feather name="send" size={11} color="#059669" />
+                <Text className="text-[11px] font-bold tracking-widest text-emerald-600">
+                  INVITE TO APP
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Stats Row */}
