@@ -1,0 +1,37 @@
+{
+  "expo": {
+    "name": "my-expo-app",
+    "slug": "family-tree",
+    "scheme": "family-tree",
+    "version": "1.0.0",
+    "web": {
+      "favicon": "./assets/file.png"
+    },
+    "experiments": {
+      "tsconfigPaths": true
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "orientation": "portrait",
+    "icon": "./assets/pkg.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/file.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/pkg.png",
+        "backgroundColor": "#ffffff"
+      }
+    }
+  }
+}
