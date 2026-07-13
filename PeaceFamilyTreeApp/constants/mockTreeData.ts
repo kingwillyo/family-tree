@@ -72,4 +72,3 @@ export const mockD3Ancestors: D3TreeNode = {
     },
   ],
 };
-

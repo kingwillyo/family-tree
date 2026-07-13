@@ -14,25 +14,27 @@ import { useAuth } from '../lib/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from 'react-router-native'; // Wait, let's use expo-router
+import { useColorScheme } from 'nativewind';
 
 import { useRouter as useExpoRouter } from 'expo-router';
 
 export default function OnboardingScreen() {
   const { user, refreshProfile, signOut } = useAuth();
   const router = useExpoRouter();
-  
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+
   const [step, setStep] = useState<'name' | 'dob_gender'>('name');
-  
+
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
-  
+
   // Basic date of birth as YYYY-MM-DD for now.
-  const [dob, setDob] = useState(''); 
+  const [dob, setDob] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [gender, setGender] = useState<'male' | 'female' | ''>('');
-  
+
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -46,7 +48,7 @@ export default function OnboardingScreen() {
   };
 
   if (!user) {
-    return null; 
+    return null;
   }
 
   const handleNext = () => {
@@ -72,7 +74,9 @@ export default function OnboardingScreen() {
 
     setLoading(true);
     try {
-      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
+      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()]
+        .filter(Boolean)
+        .join(' ');
       const familyName = lastName.trim() ? `${lastName.trim()} Family` : 'My Family';
 
       // 1. Create a Family
@@ -80,11 +84,11 @@ export default function OnboardingScreen() {
         .from('families')
         .insert({
           name: familyName,
-          created_by: user.id
+          created_by: user.id,
         })
         .select()
         .single();
-        
+
       if (familyErr) throw familyErr;
 
       // 2. Insert into profiles with new family_id
@@ -99,7 +103,7 @@ export default function OnboardingScreen() {
           role: 'admin',
           created_by: user.id,
           is_living: true,
-          visibility: 'family'
+          visibility: 'family',
         })
         .select()
         .single();
@@ -107,16 +111,14 @@ export default function OnboardingScreen() {
       if (profileErr) throw profileErr;
 
       // 3. Insert into family_members as admin
-      const { error: fmError } = await supabase
-        .from('family_members')
-        .insert({
-          user_id: user.id,
-          profile_id: profile.id,
-          family_id: family.id,
-          role: 'admin'
-        });
+      const { error: fmError } = await supabase.from('family_members').insert({
+        user_id: user.id,
+        profile_id: profile.id,
+        family_id: family.id,
+        role: 'admin',
+      });
 
-      if (fmError && fmError.code !== '23505') { 
+      if (fmError && fmError.code !== '23505') {
         // 23505 is unique violation, ignore if they already have a record
         throw fmError;
       }
@@ -124,7 +126,6 @@ export default function OnboardingScreen() {
       await refreshProfile();
       // Router will automatically observe hasProfile === true and route to /(tabs)/tree, but we can also manually fallback
       router.replace('/(tabs)/tree');
-      
     } catch (err: any) {
       console.error(err);
       setError(err.message || 'Failed to create profile. Please try again.');
@@ -134,16 +135,17 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-slate-950">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1">
-        
-        <View className="flex-row justify-between items-center px-6 pt-4 pb-2 h-14">
+        <View className="h-14 flex-row items-center justify-between px-6 pb-2 pt-4">
           <View className="flex-1">
             {step === 'dob_gender' && (
-              <TouchableOpacity onPress={() => setStep('name')} className="w-10 h-10 justify-center">
-                 <Ionicons name="arrow-back" size={24} color="black" />
+              <TouchableOpacity
+                onPress={() => setStep('name')}
+                className="h-10 w-10 justify-center">
+                <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#ffffff' : 'black'} />
               </TouchableOpacity>
             )}
           </View>
@@ -156,44 +158,37 @@ export default function OnboardingScreen() {
           className="flex-1"
           contentContainerClassName="px-6 pt-2"
           keyboardShouldPersistTaps="handled">
-          
           {step === 'name' && (
             <View className="flex-1">
               <View className="mb-8">
-                <Text className="mb-2 text-3xl font-bold text-gray-900">What's your Name?</Text>
-                <Text className="text-base text-gray-500">You're almost done</Text>
+                <Text className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
+                  {"What's your Name?"}
+                </Text>
+                <Text className="text-base text-gray-500 dark:text-slate-400">
+                  {"You're almost done"}
+                </Text>
               </View>
 
               <View>
-                <Input
-                  placeholder="First name"
-                  value={firstName}
-                  onChangeText={setFirstName}
-                />
-                
+                <Input placeholder="First name" value={firstName} onChangeText={setFirstName} />
+
                 <Input
                   placeholder="Middle name (Optional)"
                   value={middleName}
                   onChangeText={setMiddleName}
                 />
 
-                <Input
-                  placeholder="Last name"
-                  value={lastName}
-                  onChangeText={setLastName}
-                />
+                <Input placeholder="Last name" value={lastName} onChangeText={setLastName} />
 
                 {error ? (
-                  <View className="mb-4 rounded-xl bg-red-50 p-4">
-                    <Text className="text-sm font-semibold text-red-600">{error}</Text>
+                  <View className="mb-4 rounded-xl border border-transparent bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/20">
+                    <Text className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      {error}
+                    </Text>
                   </View>
                 ) : null}
 
-                <Button
-                  title="Continue"
-                  onPress={handleNext}
-                  className="mt-6"
-                />
+                <Button title="Continue" onPress={handleNext} className="mt-6" />
               </View>
             </View>
           )}
@@ -201,64 +196,88 @@ export default function OnboardingScreen() {
           {step === 'dob_gender' && (
             <View className="flex-1">
               <View className="mb-8">
-                <Text className="mb-2 text-3xl font-bold text-gray-900">Final Details</Text>
-                <Text className="text-base text-gray-500">When were you born and what is your gender?</Text>
+                <Text className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
+                  Final Details
+                </Text>
+                <Text className="text-base text-gray-500 dark:text-slate-400">
+                  When were you born and what is your gender?
+                </Text>
               </View>
 
               <View>
-                <Text className="mb-2 text-sm font-semibold text-gray-700">Date of Birth</Text>
-                <TouchableOpacity 
+                <Text className="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-400">
+                  Date of Birth
+                </Text>
+                <TouchableOpacity
                   onPress={() => setShowDatePicker(true)}
-                  className="mb-4 w-full bg-gray-100 border border-transparent rounded-2xl px-5 py-4">
-                  <Text className={dob ? "text-gray-900 text-base" : "text-gray-400 text-base"}>
-                    {dob ? dob : "YYYY-MM-DD"}
+                  className="mb-4 w-full rounded-2xl border border-transparent bg-gray-100 px-5 py-4 dark:bg-slate-900">
+                  <Text
+                    className={
+                      dob
+                        ? 'text-base text-gray-900 dark:text-white'
+                        : 'text-base text-gray-400 dark:text-slate-500'
+                    }>
+                    {dob ? dob : 'YYYY-MM-DD'}
                   </Text>
                 </TouchableOpacity>
 
-                {showDatePicker && (
-                   Platform.OS === 'ios' ? (
-                     <View className="mb-4 overflow-hidden rounded-xl bg-gray-50 border border-gray-100 px-2 pb-4 pt-2">
-                       <View className="flex-row justify-end px-2 mb-2">
-                         <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                           <Text className="text-emerald-600 font-bold text-base">Done</Text>
-                         </TouchableOpacity>
-                       </View>
-                       <DateTimePicker
-                         value={dob ? new Date(dob) : new Date(2000, 0, 1)}
-                         mode="date"
-                         display="inline"
-                         onChange={onDateChange}
-                         maximumDate={new Date()}
-                       />
-                     </View>
-                   ) : (
-                     <DateTimePicker
-                       value={dob ? new Date(dob) : new Date(2000, 0, 1)}
-                       mode="date"
-                       display="default"
-                       onChange={onDateChange}
-                       maximumDate={new Date()}
-                     />
-                   )
-                )}
+                {showDatePicker &&
+                  (Platform.OS === 'ios' ? (
+                    <View className="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 px-2 pb-4 pt-2 dark:border-slate-800 dark:bg-slate-900">
+                      <View className="mb-2 flex-row justify-end px-2">
+                        <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                          <Text className="text-base font-bold text-emerald-600 dark:text-emerald-500">
+                            Done
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <DateTimePicker
+                        value={dob ? new Date(dob) : new Date(2000, 0, 1)}
+                        mode="date"
+                        display="inline"
+                        onChange={onDateChange}
+                        maximumDate={new Date()}
+                        themeVariant={isDarkMode ? 'dark' : 'light'}
+                        accentColor="#059669"
+                      />
+                    </View>
+                  ) : (
+                    <DateTimePicker
+                      value={dob ? new Date(dob) : new Date(2000, 0, 1)}
+                      mode="date"
+                      display="default"
+                      onChange={onDateChange}
+                      maximumDate={new Date()}
+                    />
+                  ))}
 
-                <Text className="mb-2 mt-4 text-sm font-semibold text-gray-700">Gender</Text>
-                <View className="flex-row gap-4 mb-8">
-                  <TouchableOpacity 
+                <Text className="mb-2 mt-4 text-sm font-semibold text-gray-700 dark:text-slate-400">
+                  Gender
+                </Text>
+                <View className="mb-8 flex-row gap-4">
+                  <TouchableOpacity
                     onPress={() => setGender('male')}
-                    className={`flex-1 py-4 items-center rounded-2xl border ${gender === 'male' ? 'border-[#064e3b] bg-emerald-50' : 'border-gray-200 bg-white'}`}>
-                    <Text className={`font-semibold ${gender === 'male' ? 'text-[#064e3b]' : 'text-gray-500'}`}>Male</Text>
+                    className={`flex-1 items-center rounded-2xl border py-4 ${gender === 'male' ? 'border-[#064e3b] bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/20' : 'border-gray-200 bg-white dark:border-slate-800 dark:bg-slate-900'}`}>
+                    <Text
+                      className={`font-semibold ${gender === 'male' ? 'text-[#064e3b] dark:text-emerald-400' : 'text-gray-500 dark:text-slate-400'}`}>
+                      Male
+                    </Text>
                   </TouchableOpacity>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     onPress={() => setGender('female')}
-                    className={`flex-1 py-4 items-center rounded-2xl border ${gender === 'female' ? 'border-[#064e3b] bg-emerald-50' : 'border-gray-200 bg-white'}`}>
-                    <Text className={`font-semibold ${gender === 'female' ? 'text-[#064e3b]' : 'text-gray-500'}`}>Female</Text>
+                    className={`flex-1 items-center rounded-2xl border py-4 ${gender === 'female' ? 'border-[#064e3b] bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/20' : 'border-gray-200 bg-white dark:border-slate-800 dark:bg-slate-900'}`}>
+                    <Text
+                      className={`font-semibold ${gender === 'female' ? 'text-[#064e3b] dark:text-emerald-400' : 'text-gray-500 dark:text-slate-400'}`}>
+                      Female
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 {error ? (
-                  <View className="mb-4 rounded-xl bg-red-50 p-4">
-                    <Text className="text-sm font-semibold text-red-600">{error}</Text>
+                  <View className="mb-4 rounded-xl border border-transparent bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/20">
+                    <Text className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      {error}
+                    </Text>
                   </View>
                 ) : null}
 
@@ -271,7 +290,6 @@ export default function OnboardingScreen() {
               </View>
             </View>
           )}
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

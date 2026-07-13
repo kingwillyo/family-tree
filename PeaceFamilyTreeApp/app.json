@@ -5,31 +5,38 @@
     "scheme": "lineagex",
     "version": "1.0.0",
     "web": {
-      "favicon": "./assets/file.png"
+      "favicon": "./assets/ios-light.png"
     },
     "experiments": {
       "tsconfigPaths": true
     },
-    "plugins": [
-      "expo-router"
-    ],
+    "plugins": ["expo-router", "@react-native-community/datetimepicker"],
     "orientation": "portrait",
-    "icon": "./assets/pkg.png",
+    "icon": "./assets/ios-light.png",
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/file.png",
+      "image": "./assets/splash-icon-dark.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#ffffff",
+      "dark": {
+        "image": "./assets/splash-icon-dark.png",
+        "backgroundColor": "#000000"
+      }
     },
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.kingwillyo.lineagex",
+      "icon": {
+        "light": "./assets/ios-light.png",
+        "dark": "./assets/ios-dark.png",
+        "tinted": "./assets/ios-tinted.png"
+      }
     },
     "android": {
+      "package": "com.kingwillyo.lineagex",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/pkg.png",
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       }
     }

@@ -76,9 +76,13 @@ export default function RegisterScreen() {
   };
 
   const handleBack = () => {
-    if (mode === 'email') { setMode('choose'); setError(''); }
-    else if (mode === 'otp') { setMode('email'); setError(''); }
-    else router.back();
+    if (mode === 'email') {
+      setMode('choose');
+      setError('');
+    } else if (mode === 'otp') {
+      setMode('email');
+      setError('');
+    } else router.back();
   };
 
   return (
@@ -86,11 +90,10 @@ export default function RegisterScreen() {
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1">
-
         {/* Header */}
-        <View className="px-6 pt-4 pb-2">
-          <TouchableOpacity onPress={handleBack} className="w-10 h-10 justify-center">
-            <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#ffffff' : 'black'} />
+        <View className="px-6 pb-2 pt-4">
+          <TouchableOpacity onPress={handleBack} className="h-10 w-10 justify-center">
+            <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#ffffff' : '#111827'} />
           </TouchableOpacity>
         </View>
 
@@ -98,13 +101,12 @@ export default function RegisterScreen() {
           className="flex-1"
           contentContainerClassName="px-6 pt-4"
           keyboardShouldPersistTaps="handled">
-
           {/* ── Mode: Choose ── */}
           {mode === 'choose' && (
             <View>
               {/* Title */}
               <View className="mb-10">
-                <Text className="text-[32px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                <Text className="text-[32px] font-extrabold leading-tight text-gray-900 dark:text-white">
                   Create Account
                 </Text>
                 <Text className="mt-2 text-base text-gray-500 dark:text-slate-400">
@@ -116,51 +118,77 @@ export default function RegisterScreen() {
               <TouchableOpacity
                 onPress={() => setMode('email')}
                 activeOpacity={0.85}
-                className="mb-4 flex-row items-center rounded-[24px] border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5"
-                style={{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}>
-                <View className="h-14 w-14 rounded-full bg-emerald-50 dark:bg-emerald-950/30 items-center justify-center mr-4">
-                  <Feather name="git-branch" size={24} color="#059669" />
+                className="mb-4 flex-row items-center rounded-[24px] border border-gray-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+                style={{
+                  shadowColor: '#000',
+                  shadowOpacity: 0.04,
+                  shadowRadius: 12,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 2,
+                }}>
+                <View className="mr-4 h-14 w-14 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/20">
+                  <Feather name="git-branch" size={24} color={isDarkMode ? '#10b981' : '#059669'} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-[17px] font-bold text-gray-900 dark:text-white mb-0.5">
+                  <Text className="mb-0.5 text-[17px] font-bold text-gray-900 dark:text-white">
                     Start New Family
                   </Text>
                   <Text className="text-[13px] text-gray-500 dark:text-slate-400" numberOfLines={2}>
                     Create a new family tree and invite relatives to join.
                   </Text>
                 </View>
-                <Feather name="chevron-right" size={20} color={isDarkMode ? '#475569' : '#9ca3af'} />
+                <Feather
+                  name="chevron-right"
+                  size={20}
+                  color={isDarkMode ? '#64748b' : '#9ca3af'}
+                />
               </TouchableOpacity>
 
               {/* Option B: Join Family */}
               <TouchableOpacity
                 onPress={() => router.push('/(auth)/join-with-code')}
                 activeOpacity={0.85}
-                className="flex-row items-center rounded-[24px] border border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-5"
-                style={{ shadowColor: '#000', shadowOpacity: 0.04, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 }}>
-                <View className="h-14 w-14 rounded-full bg-emerald-50 dark:bg-emerald-950/30 items-center justify-center mr-4">
-                  <Feather name="key" size={24} color="#059669" />
+                className="flex-row items-center rounded-[24px] border border-gray-100 bg-white p-5 dark:border-slate-800 dark:bg-slate-900"
+                style={{
+                  shadowColor: '#000',
+                  shadowOpacity: 0.04,
+                  shadowRadius: 12,
+                  shadowOffset: { width: 0, height: 4 },
+                  elevation: 2,
+                }}>
+                <View className="mr-4 h-14 w-14 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/20">
+                  <Feather name="key" size={24} color={isDarkMode ? '#10b981' : '#059669'} />
                 </View>
                 <View className="flex-1">
-                  <Text className="text-[17px] font-bold text-gray-900 dark:text-white mb-0.5">
+                  <Text className="mb-0.5 text-[17px] font-bold text-gray-900 dark:text-white">
                     Join Family
                   </Text>
                   <Text className="text-[13px] text-gray-500 dark:text-slate-400" numberOfLines={2}>
-                    Got an invite code? Enter it to join your family's tree.
+                    {"Got an invite code? Enter it to join your family's tree."}
                   </Text>
                 </View>
-                <Feather name="chevron-right" size={20} color={isDarkMode ? '#475569' : '#9ca3af'} />
+                <Feather
+                  name="chevron-right"
+                  size={20}
+                  color={isDarkMode ? '#64748b' : '#9ca3af'}
+                />
               </TouchableOpacity>
 
               {/* Divider */}
               <View className="mt-10 flex-row items-center">
-                <View className="flex-1 h-[1px] bg-gray-100 dark:bg-slate-800" />
-                <Text className="mx-4 text-gray-400 dark:text-slate-500 text-sm">already have an account?</Text>
-                <View className="flex-1 h-[1px] bg-gray-100 dark:bg-slate-800" />
+                <View className="h-[1px] flex-1 bg-gray-100 dark:bg-slate-800" />
+
+                <Text className="mx-4 text-sm text-gray-400 dark:text-slate-500">
+                  already have an account?
+                </Text>
+
+                <View className="h-[1px] flex-1 bg-gray-100 dark:bg-slate-800" />
               </View>
               <Link href="/(auth)/login" asChild>
                 <TouchableOpacity className="mt-4 items-center py-3">
-                  <Text className="text-[15px] font-bold text-emerald-600">Log In</Text>
+                  <Text className="text-[15px] font-bold text-emerald-600 dark:text-emerald-500">
+                    Log In
+                  </Text>
                 </TouchableOpacity>
               </Link>
             </View>
@@ -170,8 +198,8 @@ export default function RegisterScreen() {
           {mode === 'email' && (
             <View>
               <View className="mb-10">
-                <Text className="mb-3 text-[28px] font-extrabold text-gray-900 dark:text-white leading-tight">
-                  What's your email?
+                <Text className="mb-3 text-[28px] font-extrabold leading-tight text-gray-900 dark:text-white">
+                  {"What's your email?"}
                 </Text>
                 <Text className="text-base text-gray-500 dark:text-slate-400">
                   A verification code will be sent to your email.
@@ -187,17 +215,14 @@ export default function RegisterScreen() {
               />
 
               {error ? (
-                <View className="mb-4 rounded-xl bg-red-50 dark:bg-red-950/20 p-4">
-                  <Text className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</Text>
+                <View className="mb-4 rounded-xl border border-transparent bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/20">
+                  <Text className="text-sm font-semibold text-red-600 dark:text-red-400">
+                    {error}
+                  </Text>
                 </View>
               ) : null}
 
-              <Button
-                title="Continue"
-                onPress={handleSendOtp}
-                loading={loading}
-                className="mt-2"
-              />
+              <Button title="Continue" onPress={handleSendOtp} loading={loading} className="mt-2" />
             </View>
           )}
 
@@ -205,12 +230,12 @@ export default function RegisterScreen() {
           {mode === 'otp' && (
             <View>
               <View className="mb-10">
-                <Text className="mb-3 text-[28px] font-extrabold text-gray-900 dark:text-white leading-tight">
+                <Text className="mb-3 text-[28px] font-extrabold leading-tight text-gray-900 dark:text-white">
                   Enter verification code
                 </Text>
                 <Text className="text-base text-gray-500 dark:text-slate-400">
-                  We've sent a code to{' '}
-                  <Text className="font-bold text-gray-700 dark:text-white">{email}</Text>
+                  {"We've sent a code to "}{' '}
+                  <Text className="font-bold text-gray-700 dark:text-slate-200">{email}</Text>
                 </Text>
               </View>
 
@@ -223,8 +248,10 @@ export default function RegisterScreen() {
               />
 
               {error ? (
-                <View className="mb-4 rounded-xl bg-red-50 dark:bg-red-950/20 p-4">
-                  <Text className="text-sm font-semibold text-red-600 dark:text-red-400">{error}</Text>
+                <View className="mb-4 rounded-xl border border-transparent bg-red-50 p-4 dark:border-red-900/50 dark:bg-red-950/20">
+                  <Text className="text-sm font-semibold text-red-600 dark:text-red-400">
+                    {error}
+                  </Text>
                 </View>
               ) : null}
 
@@ -234,7 +261,9 @@ export default function RegisterScreen() {
                 </Text>
                 {countdown === 0 && (
                   <TouchableOpacity onPress={handleResendOtp}>
-                    <Text className="font-semibold text-emerald-600">Resend</Text>
+                    <Text className="font-semibold text-emerald-600 dark:text-emerald-500">
+                      Resend
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -247,7 +276,6 @@ export default function RegisterScreen() {
               />
             </View>
           )}
-
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

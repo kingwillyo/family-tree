@@ -54,7 +54,11 @@ export interface Relationship {
 
 function formatDates(profile: Profile): string {
   const birth = profile.date_of_birth ? new Date(profile.date_of_birth).getFullYear() : null;
-  const death = profile.is_living ? null : (profile.date_of_death ? new Date(profile.date_of_death).getFullYear() : 'present');
+  const death = profile.is_living
+    ? null
+    : profile.date_of_death
+      ? new Date(profile.date_of_death).getFullYear()
+      : 'present';
   if (birth && death) return `${birth} — ${death}`;
   if (birth) return `b. ${birth}`;
   return '';
@@ -79,20 +83,12 @@ export async function fetchCurrentUserProfile(userId: string): Promise<Profile |
     .maybeSingle();
 
   if (fm?.profile_id) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', fm.profile_id)
-      .single();
+    const { data } = await supabase.from('profiles').select('*').eq('id', fm.profile_id).single();
     return data ?? null;
   }
 
   // Fallback: profile with matching user_id
-  const { data } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
+  const { data } = await supabase.from('profiles').select('*').eq('user_id', userId).maybeSingle();
   return data ?? null;
 }
 
@@ -128,13 +124,13 @@ export function buildD3Tree(
   profiles: Profile[],
   relationships: Relationship[],
   rootId: string
-): { tree: D3TreeNode; extraLinks: Array<{ sourceId: string; targetId: string }> } {
+): { tree: D3TreeNode; extraLinks: { sourceId: string; targetId: string }[] } {
   const profileMap = new Map<string, Profile>(profiles.map((p) => [p.id, p]));
 
   // Build adjacency maps
-  const childrenOf = new Map<string, string[]>();   // parent → [childId]
-  const parentsOf = new Map<string, string[]>();    // child  → [parentId]
-  const spouseOf = new Map<string, string>();       // id → spouseId (first spouse)
+  const childrenOf = new Map<string, string[]>(); // parent → [childId]
+  const parentsOf = new Map<string, string[]>(); // child  → [parentId]
+  const spouseOf = new Map<string, string>(); // id → spouseId (first spouse)
 
   for (const rel of relationships) {
     const from = rel.from_profile_id;
@@ -144,14 +140,14 @@ export function buildD3Tree(
       // from is Parent, to is Child
       if (!childrenOf.has(from)) childrenOf.set(from, []);
       if (!childrenOf.get(from)!.includes(to)) childrenOf.get(from)!.push(to);
-      
+
       if (!parentsOf.has(to)) parentsOf.set(to, []);
       if (!parentsOf.get(to)!.includes(from)) parentsOf.get(to)!.push(from);
     } else if (rel.relationship_type === 'parent') {
       // from is Child, to is Parent
       if (!childrenOf.has(to)) childrenOf.set(to, []);
       if (!childrenOf.get(to)!.includes(from)) childrenOf.get(to)!.push(from);
-      
+
       if (!parentsOf.has(from)) parentsOf.set(from, []);
       if (!parentsOf.get(from)!.includes(to)) parentsOf.get(from)!.push(to);
     } else if (rel.relationship_type === 'spouse') {
@@ -172,28 +168,34 @@ export function buildD3Tree(
     dates: formatDates(p),
     imageUrl: p.avatar_url ?? undefined,
     admin: p.role === 'admin',
-    spouse: (includeSpouse && spouseOf.has(p.id))
-      ? (() => {
-          const sp = profileMap.get(spouseOf.get(p.id)!);
-          return sp ? toNode(sp, false) : undefined;
-        })()
-      : undefined,
+    spouse:
+      includeSpouse && spouseOf.has(p.id)
+        ? (() => {
+            const sp = profileMap.get(spouseOf.get(p.id)!);
+            return sp ? toNode(sp, false) : undefined;
+          })()
+        : undefined,
   });
 
   const allProfileIds = Array.from(profileMap.keys());
-  
-  const extraLinks: Array<{ sourceId: string; targetId: string }> = [];
+
+  const extraLinks: { sourceId: string; targetId: string }[] = [];
   const primarySpouses = new Set<string>();
   const secondarySpouses = new Set<string>();
-  
+
   // Resolve primary vs secondary spouses to avoid DAG duplicate paths
   for (const [s1, s2] of Array.from(spouseOf.entries())) {
-    if (primarySpouses.has(s1) || secondarySpouses.has(s1) || primarySpouses.has(s2) || secondarySpouses.has(s2)) {
+    if (
+      primarySpouses.has(s1) ||
+      secondarySpouses.has(s1) ||
+      primarySpouses.has(s2) ||
+      secondarySpouses.has(s2)
+    ) {
       continue;
     }
     const s1Parents = parentsOf.get(s1) || [];
     const s2Parents = parentsOf.get(s2) || [];
-    
+
     if (s1Parents.length > 0 && s2Parents.length === 0) {
       primarySpouses.add(s1);
       secondarySpouses.add(s2);
@@ -212,7 +214,7 @@ export function buildD3Tree(
     }
   }
 
-  const oldestAncestors = allProfileIds.filter(id => {
+  const oldestAncestors = allProfileIds.filter((id) => {
     const noParents = !parentsOf.has(id) || parentsOf.get(id)!.length === 0;
     return noParents && !secondarySpouses.has(id);
   });
@@ -231,7 +233,7 @@ export function buildD3Tree(
     const node: D3TreeNode = {
       ...toNode(profile),
       children: (childrenOf.get(id) ?? [])
-        .map(cid => buildSubTree(cid, new Set(visited)))
+        .map((cid) => buildSubTree(cid, new Set(visited)))
         .filter(Boolean) as D3TreeNode[],
     };
     return node;
@@ -242,7 +244,7 @@ export function buildD3Tree(
     name: 'VIRTUAL_ROOT',
     role: 'hidden',
     children: oldestAncestors
-      .map(id => buildSubTree(id, new Set<string>()))
+      .map((id) => buildSubTree(id, new Set<string>()))
       .filter(Boolean) as D3TreeNode[],
   };
 
@@ -297,12 +299,22 @@ export async function addMember(
   if (relativeId && relationType) {
     const inverseType = INVERSE[relationType];
     const relsToInsert = [
-      { from_profile_id: newId, to_profile_id: relativeId, relationship_type: inverseType, created_by: createdBy },
-      { from_profile_id: relativeId, to_profile_id: newId, relationship_type: relationType, created_by: createdBy },
+      {
+        from_profile_id: newId,
+        to_profile_id: relativeId,
+        relationship_type: inverseType,
+        created_by: createdBy,
+      },
+      {
+        from_profile_id: relativeId,
+        to_profile_id: newId,
+        relationship_type: relationType,
+        created_by: createdBy,
+      },
     ];
 
     // --- Relationship Inheritance ---
-    
+
     // A. If adding a SPOUSE to A, and A has CHILDREN, the new spouse is also a PARENT to those children.
     if (relationType === 'spouse') {
       const { data: children } = await supabase
@@ -315,8 +327,18 @@ export async function addMember(
         for (const c of children) {
           const childId = c.from_profile_id === relativeId ? c.to_profile_id : c.from_profile_id;
           relsToInsert.push(
-            { from_profile_id: newId, to_profile_id: childId, relationship_type: 'child', created_by: createdBy },
-            { from_profile_id: childId, to_profile_id: newId, relationship_type: 'parent', created_by: createdBy }
+            {
+              from_profile_id: newId,
+              to_profile_id: childId,
+              relationship_type: 'child',
+              created_by: createdBy,
+            },
+            {
+              from_profile_id: childId,
+              to_profile_id: newId,
+              relationship_type: 'parent',
+              created_by: createdBy,
+            }
           );
         }
       }
@@ -334,8 +356,18 @@ export async function addMember(
         for (const s of spouses) {
           const spouseId = s.from_profile_id === relativeId ? s.to_profile_id : s.from_profile_id;
           relsToInsert.push(
-            { from_profile_id: spouseId, to_profile_id: newId, relationship_type: 'child', created_by: createdBy },
-            { from_profile_id: newId, to_profile_id: spouseId, relationship_type: 'parent', created_by: createdBy }
+            {
+              from_profile_id: spouseId,
+              to_profile_id: newId,
+              relationship_type: 'child',
+              created_by: createdBy,
+            },
+            {
+              from_profile_id: newId,
+              to_profile_id: spouseId,
+              relationship_type: 'parent',
+              created_by: createdBy,
+            }
           );
         }
       }
@@ -359,7 +391,7 @@ export async function addMember(
 
 export interface MemberDetail {
   profile: Profile;
-  relationships: Array<Relationship & { relatedProfile: Profile }>;
+  relationships: (Relationship & { relatedProfile: Profile })[];
 }
 
 export async function fetchMemberDetail(profileId: string): Promise<MemberDetail | null> {
@@ -383,7 +415,9 @@ export async function fetchMemberDetail(profileId: string): Promise<MemberDetail
 
   // Collect the IDs of all related profiles
   const relatedIds = [
-    ...new Set(rels.flatMap((r) => [r.from_profile_id, r.to_profile_id]).filter((id) => id !== profileId)),
+    ...new Set(
+      rels.flatMap((r) => [r.from_profile_id, r.to_profile_id]).filter((id) => id !== profileId)
+    ),
   ];
 
   const { data: relatedProfiles } = await supabase
@@ -407,7 +441,7 @@ export async function fetchMemberDetail(profileId: string): Promise<MemberDetail
       }
       return { ...rel, relationship_type: type, relatedProfile };
     })
-    .filter(Boolean) as Array<Relationship & { relatedProfile: Profile }>;
+    .filter(Boolean) as (Relationship & { relatedProfile: Profile })[];
 
   return { profile, relationships: enriched };
 }
@@ -417,11 +451,7 @@ export async function fetchMemberDetail(profileId: string): Promise<MemberDetail
 // ─────────────────────────────────────────────
 
 export async function fetchProfileById(profileId: string): Promise<Profile | null> {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', profileId)
-    .single();
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', profileId).single();
   if (error || !data) return null;
   return data as Profile;
 }
@@ -628,7 +658,7 @@ export async function fetchMemberStats(profileId: string): Promise<MemberStats> 
   ]);
 
   const rels = relsRes.data ?? [];
-  
+
   // 1. Connection count is the number of unique related people
   const relatedIds = new Set(
     rels.flatMap((r) => [r.from_profile_id, r.to_profile_id]).filter((id) => id !== profileId)
@@ -676,10 +706,7 @@ export async function fetchMemberConnections(profileId: string): Promise<Profile
     ),
   ];
 
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('*')
-    .in('id', relatedIds);
+  const { data: profiles } = await supabase.from('profiles').select('*').in('id', relatedIds);
 
   const profileMap = new Map<string, Profile>((profiles ?? []).map((p) => [p.id, p]));
 
@@ -708,16 +735,18 @@ export async function fetchMemberConnections(profileId: string): Promise<Profile
 // ─────────────────────────────────────────────
 
 export async function fetchCurrentProfile(): Promise<Profile | null> {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return null;
-  
+
   // Try family_members first
   const { data: fm } = await supabase
     .from('family_members')
     .select('profile_id')
     .eq('user_id', user.id)
     .maybeSingle();
-  
+
   const pid = fm?.profile_id;
   if (pid) return fetchProfileById(pid);
 
@@ -727,7 +756,7 @@ export async function fetchCurrentProfile(): Promise<Profile | null> {
     .select('*')
     .eq('user_id', user.id)
     .maybeSingle();
-  
+
   return p as Profile | null;
 }
 
@@ -738,26 +767,28 @@ export async function createProposal(
   proposedData: any,
   originalData?: any
 ): Promise<{ error?: string }> {
-  const { error } = await supabase
-    .from('edit_proposals')
-    .insert({
-      target_profile_id: targetProfileId,
-      proposed_by: proposedByProfileId,
-      change_type: changeType,
-      proposed_data: proposedData,
-      original_data: originalData || null,
-    });
+  const { error } = await supabase.from('edit_proposals').insert({
+    target_profile_id: targetProfileId,
+    proposed_by: proposedByProfileId,
+    change_type: changeType,
+    proposed_data: proposedData,
+    original_data: originalData || null,
+  });
   return error ? { error: error.message } : {};
 }
 
-export async function fetchProposals(status: 'pending' | 'approved' | 'rejected' | 'all' = 'pending'): Promise<EditProposal[]> {
+export async function fetchProposals(
+  status: 'pending' | 'approved' | 'rejected' | 'all' = 'pending'
+): Promise<EditProposal[]> {
   let query = supabase
     .from('edit_proposals')
-    .select(`
+    .select(
+      `
       *,
       target_profile:profiles!target_profile_id(*),
       proposer_profile:profiles!proposed_by(*)
-    `)
+    `
+    )
     .order('created_at', { ascending: false });
 
   if (status !== 'all') {
@@ -784,15 +815,13 @@ export async function updateProposalStatus(
         .from('profiles')
         .update(proposal.proposed_data)
         .eq('id', proposal.target_profile_id);
-      
+
       if (applyError) return { error: applyError.message };
     } else if (proposal.change_type === 'timeline_add') {
-      const { error: applyError } = await supabase
-        .from('timeline_events')
-        .insert({
-          ...proposal.proposed_data,
-          profile_id: proposal.target_profile_id,
-        });
+      const { error: applyError } = await supabase.from('timeline_events').insert({
+        ...proposal.proposed_data,
+        profile_id: proposal.target_profile_id,
+      });
       if (applyError) return { error: applyError.message };
     } else if (proposal.change_type === 'avatar_update') {
       const { error: applyError } = await supabase
@@ -811,13 +840,13 @@ export async function updateProposalStatus(
 
   const { error } = await supabase
     .from('edit_proposals')
-    .update({ 
-      status, 
-      reviewed_by: adminProfileId, 
-      reviewed_at: new Date().toISOString() 
+    .update({
+      status,
+      reviewed_by: adminProfileId,
+      reviewed_at: new Date().toISOString(),
     })
     .eq('id', proposal.id);
-    
+
   return error ? { error: error.message } : {};
 }
 
@@ -866,8 +895,9 @@ export async function lookupInviteCode(
 ): Promise<{ profile: Profile } | { error: string }> {
   // Uses a SECURITY DEFINER Postgres function to bypass RLS,
   // allowing unauthenticated (anon) users to validate an invite code.
-  const { data, error } = await supabase
-    .rpc('lookup_profile_by_invite_code', { p_code: code.toUpperCase().trim() });
+  const { data, error } = await supabase.rpc('lookup_profile_by_invite_code', {
+    p_code: code.toUpperCase().trim(),
+  });
 
   if (error) {
     console.error('lookupInviteCode RPC error:', error);

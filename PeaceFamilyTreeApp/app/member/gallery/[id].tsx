@@ -27,17 +27,13 @@ function ImagePreviewModal({ visible, imageUrl, onClose }: ImagePreviewModalProp
   if (!imageUrl) return null;
   return (
     <Modal visible={visible} transparent animationType="fade">
-      <View className="flex-1 bg-black/90 items-center justify-center">
-        <TouchableOpacity 
+      <View className="flex-1 items-center justify-center bg-black/90">
+        <TouchableOpacity
           onPress={onClose}
-          className="absolute top-12 right-6 z-20 h-10 w-10 items-center justify-center rounded-full bg-white/20">
+          className="absolute right-6 top-12 z-20 h-10 w-10 items-center justify-center rounded-full bg-white/20">
           <Feather name="x" size={24} color="white" />
         </TouchableOpacity>
-        <Image 
-          source={{ uri: imageUrl }} 
-          className="w-full h-3/4" 
-          resizeMode="contain"
-        />
+        <Image source={{ uri: imageUrl }} className="h-3/4 w-full" resizeMode="contain" />
       </View>
     </Modal>
   );
@@ -55,16 +51,15 @@ export default function MemberGalleryScreen() {
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [p, m] = await Promise.all([
-      fetchProfileById(id),
-      fetchMemberMedia(id),
-    ]);
+    const [p, m] = await Promise.all([fetchProfileById(id), fetchMemberMedia(id)]);
     setProfile(p);
     setMedia(m);
     setLoading(false);
   }, [id]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
 
   const itemSize = (width - 48 - 16) / 3;
 
@@ -133,10 +128,10 @@ export default function MemberGalleryScreen() {
       )}
 
       {/* Image Preview Modal */}
-      <ImagePreviewModal 
-        visible={!!previewImage} 
-        imageUrl={previewImage} 
-        onClose={() => setPreviewImage(null)} 
+      <ImagePreviewModal
+        visible={!!previewImage}
+        imageUrl={previewImage}
+        onClose={() => setPreviewImage(null)}
       />
     </SafeAreaView>
   );

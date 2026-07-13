@@ -47,7 +47,7 @@ export function MemberCard({ profile, showRelationship, onPress }: MemberCardPro
     <TouchableOpacity
       activeOpacity={0.75}
       onPress={handlePress}
-      className="mb-3 flex-row items-center rounded-3xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+      className="mb-3 flex-row items-center rounded-3xl border border-gray-100 bg-white px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
       {/* Avatar */}
       {profile.avatar_url ? (
         <Image
@@ -56,29 +56,31 @@ export function MemberCard({ profile, showRelationship, onPress }: MemberCardPro
           resizeMode="cover"
         />
       ) : (
-        <View className="mr-4 h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
-          <Text className="text-base font-bold text-emerald-700">{initials}</Text>
+        <View className="mr-4 h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/20">
+          <Text className="text-base font-bold text-emerald-700 dark:text-emerald-500">
+            {initials}
+          </Text>
         </View>
       )}
 
       {/* Info */}
       <View className="flex-1">
         <View className="flex-row items-center gap-2">
-          <Text className="text-base font-semibold text-gray-900">
+          <Text className="text-base font-semibold text-gray-900 dark:text-white">
             {profile.full_name ?? 'Unknown'}
           </Text>
           {!profile.is_living && (
-            <View className="rounded-full bg-gray-200 px-2 py-0.5">
-              <Text className="text-xs text-gray-500">†</Text>
+            <View className="rounded-full bg-gray-200 px-2 py-0.5 dark:bg-slate-800">
+              <Text className="text-xs text-gray-500 dark:text-slate-400">†</Text>
             </View>
           )}
           {profile.visibility === 'private' && (
-            <View className="rounded-full bg-amber-100 px-2 py-0.5">
-              <Text className="text-xs text-amber-700">Private</Text>
+            <View className="rounded-full bg-amber-100 px-2 py-0.5 dark:bg-amber-950/20">
+              <Text className="text-xs text-amber-700 dark:text-amber-500">Private</Text>
             </View>
           )}
         </View>
-        <Text className="mt-0.5 text-sm text-gray-400">
+        <Text className="mt-0.5 text-sm text-gray-400 dark:text-slate-500">
           {birthYear
             ? deathYear
               ? `${birthYear} – ${deathYear}`
@@ -86,14 +88,14 @@ export function MemberCard({ profile, showRelationship, onPress }: MemberCardPro
             : 'No birth date'}
         </Text>
         {showRelationship && (
-          <Text className="mt-0.5 text-xs font-medium capitalize text-emerald-600">
+          <Text className="mt-0.5 text-xs font-medium capitalize text-emerald-600 dark:text-emerald-500">
             {showRelationship}
           </Text>
         )}
       </View>
 
       {/* Chevron */}
-      <Text className="text-xl text-gray-300">›</Text>
+      <Text className="text-xl text-gray-300 dark:text-slate-600">›</Text>
     </TouchableOpacity>
   );
 }

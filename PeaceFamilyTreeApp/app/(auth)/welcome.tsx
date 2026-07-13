@@ -5,7 +5,6 @@ import {
   FlatList,
   Image,
   SafeAreaView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
@@ -66,26 +65,22 @@ export default function WelcomeScreen() {
     });
   };
 
-  const renderSlide = ({ item }: { item: typeof SLIDES[0] }) => (
+  const renderSlide = ({ item }: { item: (typeof SLIDES)[0] }) => (
     <View style={{ width }} className="items-center px-10">
       <View className="mb-8 mt-12 h-80 w-full items-center justify-center">
-        <Image
-          source={item.image}
-          className="h-full w-full"
-          resizeMode="contain"
-        />
+        <Image source={item.image} className="h-full w-full" resizeMode="contain" />
       </View>
-      <Text className="mb-4 text-center text-3xl font-extrabold text-[#1a2b21] leading-tight">
+      <Text className="mb-4 text-center text-3xl font-extrabold leading-tight text-[#1a2b21] dark:text-white">
         {item.title}
       </Text>
-      <Text className="text-center text-lg text-[#3e4d44] leading-6">
+      <Text className="text-center text-lg leading-6 text-[#3e4d44] dark:text-slate-400">
         {item.description}
       </Text>
     </View>
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-[#f8fcf4]">
+    <SafeAreaView className="flex-1 bg-[#f8fcf4] dark:bg-slate-950">
       <View className="flex-1">
         <FlatList
           ref={flatListRef}
@@ -105,7 +100,9 @@ export default function WelcomeScreen() {
             <View
               key={index}
               className={`h-2 rounded-full ${
-                index === activeIndex ? 'w-8 bg-[#064e3b]' : 'w-2 bg-gray-200'
+                index === activeIndex
+                  ? 'w-8 bg-[#064e3b] dark:bg-emerald-500'
+                  : 'w-2 bg-gray-200 dark:bg-slate-800'
               }`}
             />
           ))}
@@ -114,18 +111,13 @@ export default function WelcomeScreen() {
         {/* Action Buttons */}
         <View className="px-6 pb-12">
           {activeIndex < SLIDES.length - 1 ? (
-            <Button
-              title="Next"
-              variant="brand"
-              onPress={handleNext}
-              className="mb-4"
-            />
+            <Button title="Next" variant="brand" onPress={handleNext} className="mb-4" />
           ) : (
             <>
               <Link href="/(auth)/register" asChild>
                 <Button title="Create Account" variant="brand" className="mb-4" />
               </Link>
-              
+
               <Link href="/(auth)/login" asChild>
                 <Button title="Log In" variant="secondary" />
               </Link>
@@ -134,23 +126,31 @@ export default function WelcomeScreen() {
 
           {/* Footer Links (Conditions apply if it's the last page) */}
           <View className="mt-8 flex-row justify-center gap-1 opacity-80">
-            <Text className="text-xs text-gray-400">By continuing, you agree to our</Text>
+            <Text className="text-xs text-gray-400 dark:text-slate-500">
+              By continuing, you agree to our
+            </Text>
             <TouchableOpacity>
-              <Text className="text-xs font-semibold text-[#059669]">Terms</Text>
+              <Text className="text-xs font-semibold text-[#059669] dark:text-emerald-500">
+                Terms
+              </Text>
             </TouchableOpacity>
-            <Text className="text-xs text-gray-400">&</Text>
+            <Text className="text-xs text-gray-400 dark:text-slate-500">&</Text>
             <TouchableOpacity>
-              <Text className="text-xs font-semibold text-[#059669]">Privacy</Text>
+              <Text className="text-xs font-semibold text-[#059669] dark:text-emerald-500">
+                Privacy
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-      
+
       {/* Top Header - Skip Button */}
       {activeIndex < SLIDES.length - 1 && (
         <View className="absolute right-6 top-16">
           <TouchableOpacity onPress={handleSkip} activeOpacity={0.7} className="px-4 py-2">
-            <Text className="text-base font-bold text-[#064e3b] opacity-80">Skip</Text>
+            <Text className="text-base font-bold text-[#064e3b] opacity-80 dark:text-emerald-500">
+              Skip
+            </Text>
           </TouchableOpacity>
         </View>
       )}

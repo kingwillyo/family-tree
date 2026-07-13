@@ -93,8 +93,10 @@ export default function AddMemberScreen() {
     <SafeAreaView className="flex-1 bg-[#fcfcfb] dark:bg-slate-950" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
-        <TouchableOpacity onPress={() => router.back()} className="h-10 w-10 items-center justify-center">
-          <Feather name="x" size={24} color={isDarkMode ? '#94a3b8' : "#6d7b73"} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="h-10 w-10 items-center justify-center">
+          <Feather name="x" size={24} color={isDarkMode ? '#94a3b8' : '#6d7b73'} />
         </TouchableOpacity>
         <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44] dark:text-emerald-500">
           Add Member
@@ -114,14 +116,13 @@ export default function AddMemberScreen() {
           contentContainerClassName="px-6 pb-20"
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled">
-          
           {/* Avatar Section */}
           <View className="mb-10 items-center pt-6">
             <View className="relative">
-              <View className="h-[120px] w-[120px] items-center justify-center rounded-full border-2 border-dashed border-[#d3d9d6] dark:border-slate-800 bg-white dark:bg-slate-900">
-                <Feather name="camera" size={32} color={isDarkMode ? '#334155' : "#c4ccc7"} />
+              <View className="h-[120px] w-[120px] items-center justify-center rounded-full border-2 border-dashed border-[#d3d9d6] bg-white dark:border-slate-800 dark:bg-slate-900">
+                <Feather name="camera" size={32} color={isDarkMode ? '#334155' : '#c4ccc7'} />
               </View>
-              <View className="absolute bottom-0 right-1 h-8 w-8 items-center justify-center rounded-full bg-[#8cc63f] border-2 border-white dark:border-slate-950">
+              <View className="absolute bottom-0 right-1 h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#8cc63f] dark:border-slate-950">
                 <Feather name="plus" size={18} color="white" />
               </View>
             </View>
@@ -140,9 +141,9 @@ export default function AddMemberScreen() {
               First Name
             </Text>
             <TextInput
-              className="h-14 w-full rounded-2xl border border-[#f0f2f0] dark:border-slate-800 bg-white dark:bg-slate-900 px-5 text-base text-[#1a2b21] dark:text-white"
+              className="h-14 w-full rounded-2xl border border-[#f0f2f0] bg-white px-5 text-base text-[#1a2b21] dark:border-slate-800 dark:bg-slate-900 dark:text-white"
               placeholder="e.g. Eleanor"
-              placeholderTextColor={isDarkMode ? '#334155' : "#c4ccc7"}
+              placeholderTextColor={isDarkMode ? '#334155' : '#c4ccc7'}
               value={firstName}
               onChangeText={setFirstName}
             />
@@ -153,9 +154,9 @@ export default function AddMemberScreen() {
               Last Name
             </Text>
             <TextInput
-              className="h-14 w-full rounded-2xl border border-[#f0f2f0] dark:border-slate-800 bg-white dark:bg-slate-900 px-5 text-base text-[#1a2b21] dark:text-white"
+              className="h-14 w-full rounded-2xl border border-[#f0f2f0] bg-white px-5 text-base text-[#1a2b21] dark:border-slate-800 dark:bg-slate-900 dark:text-white"
               placeholder="e.g. Rigby"
-              placeholderTextColor={isDarkMode ? '#334155' : "#c4ccc7"}
+              placeholderTextColor={isDarkMode ? '#334155' : '#c4ccc7'}
               value={lastName}
               onChangeText={setLastName}
             />
@@ -167,14 +168,14 @@ export default function AddMemberScreen() {
             </Text>
             <View className="relative">
               <TextInput
-                className="h-14 w-full rounded-2xl border border-[#f0f2f0] dark:border-slate-800 bg-white dark:bg-slate-900 px-5 pr-12 text-base text-[#1a2b21] dark:text-white"
+                className="h-14 w-full rounded-2xl border border-[#f0f2f0] bg-white px-5 pr-12 text-base text-[#1a2b21] dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                 placeholder="mm/dd/yyyy"
-                placeholderTextColor={isDarkMode ? '#334155' : "#c4ccc7"}
+                placeholderTextColor={isDarkMode ? '#334155' : '#c4ccc7'}
                 value={dob}
                 onChangeText={setDob}
               />
               <View className="absolute right-5 top-4">
-                <Feather name="calendar" size={18} color={isDarkMode ? '#475569' : "#6d7b73"} />
+                <Feather name="calendar" size={18} color={isDarkMode ? '#475569' : '#6d7b73'} />
               </View>
             </View>
           </View>
@@ -185,14 +186,14 @@ export default function AddMemberScreen() {
             </Text>
             <View className="relative">
               <TextInput
-                className="h-14 w-full rounded-2xl border border-[#f0f2f0] dark:border-slate-800 bg-white dark:bg-slate-900 px-5 pr-12 text-base text-[#1a2b21] dark:text-white"
+                className="h-14 w-full rounded-2xl border border-[#f0f2f0] bg-white px-5 pr-12 text-base text-[#1a2b21] dark:border-slate-800 dark:bg-slate-900 dark:text-white"
                 placeholder="City, Country"
-                placeholderTextColor={isDarkMode ? '#334155' : "#c4ccc7"}
+                placeholderTextColor={isDarkMode ? '#334155' : '#c4ccc7'}
                 value={birthPlace}
                 onChangeText={setBirthPlace}
               />
               <View className="absolute right-5 top-4">
-                <Feather name="map-pin" size={18} color={isDarkMode ? '#475569' : "#c4ccc7"} />
+                <Feather name="map-pin" size={18} color={isDarkMode ? '#475569' : '#c4ccc7'} />
               </View>
             </View>
           </View>
@@ -210,11 +211,13 @@ export default function AddMemberScreen() {
                   className={`flex-1 items-center justify-center rounded-2xl border py-4 ${
                     relation === type
                       ? 'border-[#8cc63f] bg-[#f8fcf4] dark:bg-emerald-950/20'
-                      : 'border-[#f0f2f0] dark:border-slate-800 bg-white dark:bg-slate-900'
+                      : 'border-[#f0f2f0] bg-white dark:border-slate-800 dark:bg-slate-900'
                   }`}>
                   <Text
                     className={`text-[12px] font-bold uppercase tracking-[0.05em] ${
-                      relation === type ? 'text-[#3e4d44] dark:text-white' : 'text-[#9aa7a0] dark:text-slate-500'
+                      relation === type
+                        ? 'text-[#3e4d44] dark:text-white'
+                        : 'text-[#9aa7a0] dark:text-slate-500'
                     }`}>
                     {type}
                   </Text>
@@ -229,13 +232,13 @@ export default function AddMemberScreen() {
           </View>
 
           {/* Privacy Settings Section */}
-          <View className="rounded-[32px] bg-white dark:bg-slate-900 p-6 shadow-sm border border-transparent dark:border-slate-800">
+          <View className="rounded-[32px] border border-transparent bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
                 <Text className="text-[14px] font-bold text-[#1a2b21] dark:text-white">
                   Still Living
                 </Text>
-                <Text className="text-[12px] text-[#9aa7a0] dark:text-slate-500 mt-1">
+                <Text className="mt-1 text-[12px] text-[#9aa7a0] dark:text-slate-500">
                   Toggle off for deceased relatives
                 </Text>
               </View>
@@ -244,19 +247,14 @@ export default function AddMemberScreen() {
                 onValueChange={setIsLiving}
                 trackColor={{ false: isDarkMode ? '#1e293b' : '#e2e8e4', true: '#8cc63f' }}
                 thumbColor="#ffffff"
-                ios_backgroundColor={isDarkMode ? '#1e293b' : "#e2e8e4"}
+                ios_backgroundColor={isDarkMode ? '#1e293b' : '#e2e8e4'}
               />
             </View>
           </View>
 
           {/* Action Buttons */}
           <View className="mt-10 items-center">
-            <Button
-              title="Save Member"
-              onPress={handleSave}
-              loading={saving}
-              variant="brand"
-            />
+            <Button title="Save Member" onPress={handleSave} loading={saving} variant="brand" />
             <TouchableOpacity
               onPress={() => router.back()}
               className="mt-6 h-12 items-center justify-center">
@@ -265,10 +263,8 @@ export default function AddMemberScreen() {
               </Text>
             </TouchableOpacity>
           </View>
-          
-          {error ? (
-            <Text className="mt-4 text-center text-sm text-red-500">{error}</Text>
-          ) : null}
+
+          {error ? <Text className="mt-4 text-center text-sm text-red-500">{error}</Text> : null}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>

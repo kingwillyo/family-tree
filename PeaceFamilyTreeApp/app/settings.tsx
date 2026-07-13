@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import { useAuth } from '../lib/auth-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function SettingsScreen() {
   const router = useRouter();
@@ -13,39 +14,57 @@ export default function SettingsScreen() {
   const { colorScheme, setColorScheme } = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
-  const handleSignOut = () => {
-    Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Sign Out', 
-          style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            router.replace('/welcome');
-          } 
-        },
-      ]
-    );
+  const handleToggleDarkMode = async (val: boolean) => {
+    const newTheme = val ? 'dark' : 'light';
+    setColorScheme(newTheme);
+    try {
+      await AsyncStorage.setItem('user-color-scheme', newTheme);
+    } catch (e) {
+      console.error('Failed to save theme', e);
+    }
   };
 
-  const SettingItem = ({ icon, title, subtitle, onPress, color = '#111827', rightElement }: any) => (
-    <TouchableOpacity 
+  const handleSignOut = () => {
+    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign Out',
+        style: 'destructive',
+        onPress: async () => {
+          await signOut();
+          router.replace('/welcome');
+        },
+      },
+    ]);
+  };
+
+  const SettingItem = ({
+    icon,
+    title,
+    subtitle,
+    onPress,
+    color = '#111827',
+    rightElement,
+  }: any) => (
+    <TouchableOpacity
       onPress={onPress}
       disabled={!onPress}
-      className="mb-3 flex-row items-center justify-between rounded-[24px] bg-white p-5 border border-gray-50 dark:bg-slate-900 dark:border-slate-800">
-      <View className="flex-row items-center flex-1">
-        <View className={`mr-4 h-11 w-11 items-center justify-center rounded-2xl bg-gray-50 dark:bg-slate-800`}>
+      className="mb-3 flex-row items-center justify-between rounded-[24px] border border-gray-50 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
+      <View className="flex-1 flex-row items-center">
+        <View
+          className={`mr-4 h-11 w-11 items-center justify-center rounded-2xl bg-gray-50 dark:bg-slate-800`}>
           <Feather name={icon} size={20} color={isDarkMode ? '#ffffff' : color} />
         </View>
         <View className="flex-1">
           <Text className="text-[16px] font-bold text-gray-900 dark:text-white">{title}</Text>
-          {subtitle && <Text className="text-[12px] text-gray-400 mt-0.5 dark:text-slate-500">{subtitle}</Text>}
+          {subtitle && (
+            <Text className="mt-0.5 text-[12px] text-gray-400 dark:text-slate-500">{subtitle}</Text>
+          )}
         </View>
       </View>
-      {rightElement ? rightElement : (onPress && <Feather name="chevron-right" size={20} color="#cbd5e1" />)}
+      {rightElement
+        ? rightElement
+        : onPress && <Feather name="chevron-right" size={20} color="#cbd5e1" />}
     </TouchableOpacity>
   );
 
@@ -60,23 +79,22 @@ export default function SettingsScreen() {
       {/* Header */}
       <View className="flex-row items-center px-6 pb-4 pt-4">
         <TouchableOpacity onPress={() => router.back()} className="-ml-2 p-2">
-          <Feather name="chevron-left" size={28} color={isDarkMode ? '#ffffff' : "#111827"} />
+          <Feather name="chevron-left" size={28} color={isDarkMode ? '#ffffff' : '#111827'} />
         </TouchableOpacity>
         <Text className="ml-2 text-[26px] font-bold text-gray-900 dark:text-white">Settings</Text>
       </View>
 
-      <ScrollView 
+      <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingHorizontal: 24, paddingBottom: 100 }}>
-        
         <SectionTitle title="Account" />
 
-        <SettingItem 
-          icon="bell" 
-          title="Notifications" 
+        <SettingItem
+          icon="bell"
+          title="Notifications"
           rightElement={
-            <Switch 
-              value={notificationsEnabled} 
+            <Switch
+              value={notificationsEnabled}
               onValueChange={setNotificationsEnabled}
               trackColor={{ false: '#f3f4f6', true: '#8cc63f' }}
               thumbColor="white"
@@ -84,38 +102,28 @@ export default function SettingsScreen() {
           }
         />
 
-        <SettingItem 
-          icon="moon" 
-          title="Dark Mode" 
-          subtitle={isDarkMode ? "Enabled" : "Disabled"}
+        <SettingItem
+          icon="moon"
+          title="Dark Mode"
+          subtitle={isDarkMode ? 'Enabled' : 'Disabled'}
           rightElement={
-            <Switch 
-              value={isDarkMode} 
-              onValueChange={(val) => setColorScheme(val ? 'dark' : 'light')}
+            <Switch
+              value={isDarkMode}
+              onValueChange={handleToggleDarkMode}
               trackColor={{ false: '#f3f4f6', true: '#8cc63f' }}
               thumbColor="white"
             />
           }
         />
 
-
         <SectionTitle title="Support" />
-        <SettingItem 
-          icon="help-circle" 
-          title="Help Center" 
-          onPress={() => {}}
-        />
-        <SettingItem 
-          icon="info" 
-          title="About" 
-          subtitle="Version 1.0.0"
-          onPress={() => {}}
-        />
+        <SettingItem icon="help-circle" title="Help Center" onPress={() => {}} />
+        <SettingItem icon="info" title="About" subtitle="Version 1.0.0" onPress={() => {}} />
 
         <View className="mt-10">
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={handleSignOut}
-            className="flex-row items-center justify-center rounded-[24px] bg-red-50 py-5 border border-red-100 dark:bg-red-950/20 dark:border-red-900/50">
+            className="flex-row items-center justify-center rounded-[24px] border border-red-100 bg-red-50 py-5 dark:border-red-900/50 dark:bg-red-950/20">
             <Feather name="log-out" size={18} color="#ef4444" className="mr-2" />
             <Text className="text-[16px] font-bold text-red-500">Sign Out</Text>
           </TouchableOpacity>

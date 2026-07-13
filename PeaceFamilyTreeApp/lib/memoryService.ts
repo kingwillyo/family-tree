@@ -10,8 +10,8 @@ export interface CreateMemoryInput {
   title?: string;
   body?: string;
   location?: string;
-  imageUris?: string[];   // local file URIs — will be uploaded
-  audioUri?: string;      // local file URI or 'mock_audio'
+  imageUris?: string[]; // local file URIs — will be uploaded
+  audioUri?: string; // local file URI or 'mock_audio'
   authorProfileId?: string;
 }
 
@@ -79,9 +79,7 @@ export async function createMemory(
     // Upload photos if present
     let imageUrls: string[] = [];
     if (input.imageUris && input.imageUris.length > 0) {
-      imageUrls = await Promise.all(
-        input.imageUris.map((uri) => uploadMemoryImage(uri, userId))
-      );
+      imageUrls = await Promise.all(input.imageUris.map((uri) => uploadMemoryImage(uri, userId)));
     }
 
     const { data, error } = await supabase
@@ -142,13 +140,15 @@ export interface MemoryWithProfile extends Memory {
 export async function fetchMemoriesWithProfiles(): Promise<MemoryWithProfile[]> {
   const { data, error } = await supabase
     .from('memories')
-    .select(`
+    .select(
+      `
       *,
       profile:profiles!author_profile_id (
         full_name,
         avatar_url
       )
-    `)
+    `
+    )
     .order('created_at', { ascending: false });
 
   if (error) {

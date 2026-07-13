@@ -54,7 +54,9 @@ export default function InviteScreen() {
     <SafeAreaView className="flex-1 bg-gray-50" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
-        <TouchableOpacity onPress={() => router.back()} className="h-10 w-10 items-center justify-center">
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="h-10 w-10 items-center justify-center">
           <Feather name="chevron-left" size={24} color="#6d7b73" />
         </TouchableOpacity>
         <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44]">
@@ -106,11 +108,18 @@ export default function InviteScreen() {
           onPress={handleGenerate}
           disabled={generating}
           className="mb-4 items-center rounded-2xl bg-[#8cc63f] py-4 shadow-sm"
-          style={{ shadowColor: '#8cc63f', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8 }}>
+          style={{
+            shadowColor: '#8cc63f',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+          }}>
           {generating ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text className="text-base font-bold text-white uppercase tracking-wider">Generate Link</Text>
+            <Text className="text-base font-bold uppercase tracking-wider text-white">
+              Generate Link
+            </Text>
           )}
         </TouchableOpacity>
 
@@ -118,11 +127,13 @@ export default function InviteScreen() {
         {inviteLink && (
           <View className="rounded-2xl border border-[#e8f5e9] bg-white p-6 shadow-sm">
             <Text className="mb-2 text-sm font-bold text-[#3e4d44]">✓ Link ready</Text>
-            <Text className="mb-6 break-all text-xs text-[#9aa7a0] leading-5">{inviteLink}</Text>
+            <Text className="mb-6 break-all text-xs leading-5 text-[#9aa7a0]">{inviteLink}</Text>
             <TouchableOpacity
               onPress={handleShare}
               className="items-center rounded-xl bg-[#8cc63f] py-4">
-              <Text className="text-sm font-bold text-white uppercase tracking-widest">Share Link</Text>
+              <Text className="text-sm font-bold uppercase tracking-widest text-white">
+                Share Link
+              </Text>
             </TouchableOpacity>
           </View>
         )}

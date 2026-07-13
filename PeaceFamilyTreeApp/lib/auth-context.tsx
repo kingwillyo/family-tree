@@ -22,11 +22,13 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-async function fetchRoleAndProfileInfo(userId: string): Promise<{ role: Role; hasProfile: boolean; familyId: string | null }> {
+async function fetchRoleAndProfileInfo(
+  userId: string
+): Promise<{ role: Role; hasProfile: boolean; familyId: string | null }> {
   let role: Role = 'viewer';
   let hasProfile = false;
   let familyId: string | null = null;
-  
+
   try {
     const { data: familyMembers, error: fmError } = await supabase
       .from('family_members')
@@ -46,7 +48,7 @@ async function fetchRoleAndProfileInfo(userId: string): Promise<{ role: Role; ha
       .select('id')
       .eq('user_id', userId)
       .limit(1);
-      
+
     if (!profileError && profileData && profileData.length > 0) {
       hasProfile = true;
     }
@@ -72,7 +74,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setSession(newSession);
     setUser(newSession?.user ?? null);
     if (newSession?.user) {
-      const { role: r, hasProfile: hp, familyId: fid } = await fetchRoleAndProfileInfo(newSession.user.id);
+      const {
+        role: r,
+        hasProfile: hp,
+        familyId: fid,
+      } = await fetchRoleAndProfileInfo(newSession.user.id);
       setRole(r);
       setHasProfile(hp);
       setFamilyId(fid);
@@ -185,7 +191,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ session, user, role, hasProfile, familyId, loading, appLoading, signIn, signUp, signInWithOtp, verifyOtp, signOut, refreshProfile }}>
+      value={{
+        session,
+        user,
+        role,
+        hasProfile,
+        familyId,
+        loading,
+        appLoading,
+        signIn,
+        signUp,
+        signInWithOtp,
+        verifyOtp,
+        signOut,
+        refreshProfile,
+      }}>
       {children}
     </AuthContext.Provider>
   );

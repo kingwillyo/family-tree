@@ -80,25 +80,25 @@ export function TreeSearchButton({ onSearch }: TreeSearchButtonProps) {
       className="flex-1 flex-row items-center px-4"
       style={{ height: BUTTON_SIZE }}>
       <View className="h-10 w-10 items-center justify-center">
-        <Feather name="search" size={22} color={isDarkMode ? '#ffffff' : "#374151"} />
+        <Feather name="search" size={22} color={isDarkMode ? '#ffffff' : '#374151'} />
       </View>
-      
+
       <Animated.View style={[{ overflow: 'hidden' }, animatedInputStyle]}>
         <TextInput
           ref={inputRef}
           className="h-full text-base font-semibold text-gray-800 dark:text-white"
           placeholder="Find a relative..."
-          placeholderTextColor={isDarkMode ? '#94a3b8' : "#6b7280"}
+          placeholderTextColor={isDarkMode ? '#94a3b8' : '#6b7280'}
           value={query}
           onChangeText={handleSearch}
         />
       </Animated.View>
 
       {isExpanded && (
-        <TouchableOpacity 
+        <TouchableOpacity
           onPress={handleClose}
           className="ml-auto h-10 w-10 items-center justify-center">
-          <Feather name="x" size={20} color={isDarkMode ? '#94a3b8' : "#6b7280"} />
+          <Feather name="x" size={20} color={isDarkMode ? '#94a3b8' : '#6b7280'} />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -118,14 +118,20 @@ export function TreeSearchButton({ onSearch }: TreeSearchButtonProps) {
         animatedContainerStyle,
       ]}>
       {isGlass ? (
-        <GlassView glassEffectStyle="regular" colorScheme={isDarkMode ? "dark" : "light"} style={StyleSheet.absoluteFill}>
+        <GlassView
+          glassEffectStyle="regular"
+          colorScheme={isDarkMode ? 'dark' : 'light'}
+          style={StyleSheet.absoluteFill}>
           {content}
         </GlassView>
       ) : (
         <BlurView
           intensity={70}
           tint={isDarkMode ? 'dark' : 'light'}
-          style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.4)' : 'rgba(255, 255, 255, 0.4)' }]}>
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: isDarkMode ? 'rgba(15, 23, 42, 0.4)' : 'rgba(255, 255, 255, 0.4)' },
+          ]}>
           {content}
         </BlurView>
       )}

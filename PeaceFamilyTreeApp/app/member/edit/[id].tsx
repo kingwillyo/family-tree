@@ -15,6 +15,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useColorScheme } from 'nativewind';
+
 import { supabase } from '../../../lib/supabase';
 import { Input } from '../../../components/Input';
 import { Feather } from '@expo/vector-icons';
@@ -23,6 +25,9 @@ import { Button } from '../../../components/Button';
 export default function EditMemberScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -43,29 +48,37 @@ export default function EditMemberScreen() {
   useEffect(() => {
     const fetch = async () => {
       // Fetch current user's profile to check role
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (user) {
         const { data: fm } = await supabase
           .from('family_members')
           .select('profile_id')
           .eq('user_id', user.id)
           .maybeSingle();
-        
+
         const pid = fm?.profile_id;
         if (pid) {
           const { data: p } = await supabase.from('profiles').select('*').eq('id', pid).single();
           setCurrentProfile(p);
         } else {
-          const { data: p } = await supabase.from('profiles').select('*').eq('user_id', user.id).maybeSingle();
+          const { data: p } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('user_id', user.id)
+            .maybeSingle();
           setCurrentProfile(p);
         }
       }
 
       let profileId = id;
-      
+
       // If we're editing 'current-user', find their profile ID first
       if (id === 'current-user') {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
         if (authUser) {
           const { data: fm } = await supabase
             .from('family_members')
@@ -74,7 +87,11 @@ export default function EditMemberScreen() {
             .maybeSingle();
           if (fm?.profile_id) profileId = fm.profile_id;
           else {
-            const { data: p } = await supabase.from('profiles').select('id').eq('user_id', authUser.id).maybeSingle();
+            const { data: p } = await supabase
+              .from('profiles')
+              .select('id')
+              .eq('user_id', authUser.id)
+              .maybeSingle();
             if (p) profileId = p.id;
           }
         }
@@ -156,7 +173,9 @@ export default function EditMemberScreen() {
         return;
       }
 
-      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
+      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()]
+        .filter(Boolean)
+        .join(' ');
 
       const updateData = {
         full_name: fullName,
@@ -180,22 +199,20 @@ export default function EditMemberScreen() {
         } else {
           router.back();
         }
-      } 
+      }
       // 2. If Member editing someone else, create proposal
       else {
-        const { error: propError } = await supabase
-          .from('edit_proposals')
-          .insert({
-            target_profile_id: profileId,
-            proposed_by: currentProfile?.id,
-            change_type: 'profile_update',
-            proposed_data: updateData,
-            original_data: { 
-              full_name: fullName, // this is slightly wrong, should be the data we fetched initially
-              // but for simplicity we'll just push the current state vs updated state 
-              // actually we should have kept 'initialData' state
-            }
-          });
+        const { error: propError } = await supabase.from('edit_proposals').insert({
+          target_profile_id: profileId,
+          proposed_by: currentProfile?.id,
+          change_type: 'profile_update',
+          proposed_data: updateData,
+          original_data: {
+            full_name: fullName, // this is slightly wrong, should be the data we fetched initially
+            // but for simplicity we'll just push the current state vs updated state
+            // actually we should have kept 'initialData' state
+          },
+        });
 
         if (propError) {
           setError(propError.message);
@@ -209,19 +226,21 @@ export default function EditMemberScreen() {
     }
   };
 
-
   return (
-    <SafeAreaView className="flex-1 bg-[#fcfcfb]" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-[#fcfcfb] dark:bg-slate-950" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
-        <TouchableOpacity onPress={() => router.back()} className="h-10 w-10 items-center justify-center">
-          <Feather name="x" size={24} color="#6d7b73" />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          className="h-10 w-10 items-center justify-center">
+          <Feather name="x" size={24} color={isDarkMode ? '#9aa7a0' : '#6d7b73'} />
         </TouchableOpacity>
-        <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44]">
+        <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44] dark:text-slate-400">
           Edit Member
         </Text>
-        <TouchableOpacity 
-          onPress={handleSave} 
+
+        <TouchableOpacity
+          onPress={handleSave}
           disabled={saving}
           className="h-10 items-center justify-center">
           {saving ? (
@@ -271,24 +290,30 @@ export default function EditMemberScreen() {
           </View>
 
           <View className="mb-8">
-            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0]">
+            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0] dark:text-slate-500">
               Date of Birth
             </Text>
-            <TouchableOpacity 
+
+            <TouchableOpacity
               onPress={() => setShowDatePicker(true)}
-              className="w-full bg-white border border-[#f0f2f0] rounded-2xl px-5 py-4 flex-row justify-between items-center">
-              <Text className={dob ? "text-[#1a2b21] text-base" : "text-[#c4ccc7] text-base"}>
-                {dob ? dob : "YYYY-MM-DD"}
+              className="w-full flex-row items-center justify-between rounded-2xl border border-[#f0f2f0] bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+              <Text
+                className={
+                  dob
+                    ? 'text-base text-[#1a2b21] dark:text-white'
+                    : 'text-base text-[#c4ccc7] dark:text-slate-600'
+                }>
+                {dob ? dob : 'YYYY-MM-DD'}
               </Text>
-              <Feather name="calendar" size={18} color="#6d7b73" />
+              <Feather name="calendar" size={18} color={isDarkMode ? '#475569' : '#6d7b73'} />
             </TouchableOpacity>
 
-            {showDatePicker && (
-              Platform.OS === 'ios' ? (
-                <View className="mt-4 overflow-hidden rounded-2xl bg-white border border-[#f0f2f0] p-4">
-                  <View className="flex-row justify-end mb-2">
+            {showDatePicker &&
+              (Platform.OS === 'ios' ? (
+                <View className="mt-4 overflow-hidden rounded-2xl border border-[#f0f2f0] bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                  <View className="mb-2 flex-row justify-end">
                     <TouchableOpacity onPress={() => setShowDatePicker(false)}>
-                      <Text className="text-[#8cc63f] font-bold">Done</Text>
+                      <Text className="font-bold text-[#8cc63f]">Done</Text>
                     </TouchableOpacity>
                   </View>
                   <DateTimePicker
@@ -297,6 +322,8 @@ export default function EditMemberScreen() {
                     display="inline"
                     onChange={onDateChange}
                     maximumDate={new Date()}
+                    themeVariant={isDarkMode ? 'dark' : 'light'}
+                    accentColor="#8cc63f"
                   />
                 </View>
               ) : (
@@ -307,30 +334,35 @@ export default function EditMemberScreen() {
                   onChange={onDateChange}
                   maximumDate={new Date()}
                 />
-              )
-            )}
+              ))}
           </View>
 
           {!isLiving && (
             <View className="mb-8">
-              <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0]">
+              <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0] dark:text-slate-500">
                 Date of Death
               </Text>
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 onPress={() => setShowDeathPicker(true)}
-                className="w-full bg-white border border-[#f0f2f0] rounded-2xl px-5 py-4 flex-row justify-between items-center">
-                <Text className={dod ? "text-[#1a2b21] text-base" : "text-[#c4ccc7] text-base"}>
-                  {dod ? dod : "YYYY-MM-DD"}
+                className="w-full flex-row items-center justify-between rounded-2xl border border-[#f0f2f0] bg-white px-5 py-4 dark:border-slate-800 dark:bg-slate-900">
+                <Text
+                  className={
+                    dod
+                      ? 'text-base text-[#1a2b21] dark:text-white'
+                      : 'text-base text-[#c4ccc7] dark:text-slate-600'
+                  }>
+                  {dod ? dod : 'YYYY-MM-DD'}
                 </Text>
-                <Feather name="calendar" size={18} color="#6d7b73" />
+                <Feather name="calendar" size={18} color={isDarkMode ? '#475569' : '#6d7b73'} />
               </TouchableOpacity>
 
-              {showDeathPicker && (
-                Platform.OS === 'ios' ? (
-                  <View className="mt-4 overflow-hidden rounded-2xl bg-white border border-[#f0f2f0] p-4">
-                    <View className="flex-row justify-end mb-2">
+              {showDeathPicker &&
+                (Platform.OS === 'ios' ? (
+                  <View className="mt-4 overflow-hidden rounded-2xl border border-[#f0f2f0] bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                    <View className="mb-2 flex-row justify-end">
                       <TouchableOpacity onPress={() => setShowDeathPicker(false)}>
-                        <Text className="text-[#8cc63f] font-bold">Done</Text>
+                        <Text className="font-bold text-[#8cc63f]">Done</Text>
                       </TouchableOpacity>
                     </View>
                     <DateTimePicker
@@ -339,6 +371,8 @@ export default function EditMemberScreen() {
                       display="inline"
                       onChange={onDeathDateChange}
                       maximumDate={new Date()}
+                      themeVariant={isDarkMode ? 'dark' : 'light'}
+                      accentColor="#8cc63f"
                     />
                   </View>
                 ) : (
@@ -349,8 +383,7 @@ export default function EditMemberScreen() {
                     onChange={onDeathDateChange}
                     maximumDate={new Date()}
                   />
-                )
-              )}
+                ))}
             </View>
           )}
 
@@ -365,32 +398,30 @@ export default function EditMemberScreen() {
           </View>
 
           {/* Privacy Settings Section */}
-          <View className="rounded-[32px] bg-white p-6 mb-10" style={styles.cardShadow}>
+          <View
+            className="mb-10 rounded-[32px] bg-white p-6 dark:bg-slate-900"
+            style={isDarkMode ? {} : styles.cardShadow}>
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
-                <Text className="text-[14px] font-bold text-[#1a2b21]">
+                <Text className="text-[14px] font-bold text-[#1a2b21] dark:text-white">
                   Still Living
                 </Text>
-                <Text className="text-[12px] text-[#9aa7a0] mt-1">
+                <Text className="mt-1 text-[12px] text-[#9aa7a0] dark:text-slate-500">
                   Toggle off for deceased relatives
                 </Text>
               </View>
+
               <Switch
                 value={isLiving}
                 onValueChange={setIsLiving}
-                trackColor={{ false: '#e2e8e4', true: '#8cc63f' }}
-                thumbColor={Platform.OS === 'ios' ? '#ffffff' : '#ffffff'}
-                ios_backgroundColor="#e2e8e4"
+                trackColor={{ false: isDarkMode ? '#1e293b' : '#e2e8e4', true: '#8cc63f' }}
+                thumbColor="#ffffff"
+                ios_backgroundColor={isDarkMode ? '#1e293b' : '#e2e8e4'}
               />
             </View>
           </View>
 
-          <Button
-            title="Update Member"
-            onPress={handleSave}
-            loading={saving}
-            variant="brand"
-          />
+          <Button title="Update Member" onPress={handleSave} loading={saving} variant="brand" />
 
           {error && fullName.trim() ? (
             <Text className="mt-3 text-sm text-red-500">{error}</Text>

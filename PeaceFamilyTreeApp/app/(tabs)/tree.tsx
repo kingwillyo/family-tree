@@ -5,11 +5,7 @@ import { useRouter, useFocusEffect } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import { D3TreeNode } from '../../constants/mockTreeData';
 import { useAuth } from '../../lib/auth-context';
-import {
-  fetchCurrentUserProfile,
-  fetchTreeData,
-  buildD3Tree,
-} from '../../lib/treeService';
+import { fetchCurrentUserProfile, fetchTreeData, buildD3Tree } from '../../lib/treeService';
 import LottieView from 'lottie-react-native';
 import { TreeFloatingControls } from '../../components/TreeFloatingControls';
 import { TreeSearchButton } from '../../components/TreeSearchButton';
@@ -47,16 +43,35 @@ function getButtonPosition(
   return 'RIGHT';
 }
 
-const PersonNode = ({ data, nodeX, nodeY, onPress, isDarkMode }: { data: any; nodeX: number; nodeY: number; onPress: () => void; isDarkMode: boolean }) => (
+const PersonNode = ({
+  data,
+  nodeX,
+  nodeY,
+  onPress,
+  isDarkMode,
+}: {
+  data: any;
+  nodeX: number;
+  nodeY: number;
+  onPress: () => void;
+  isDarkMode: boolean;
+}) => (
   <TouchableOpacity
     onPress={onPress}
-    style={{ position: 'absolute', left: nodeX - NODE_SIZE / 2, top: nodeY - NODE_SIZE / 2, width: NODE_SIZE, alignItems: 'center', zIndex: 10 }}>
+    style={{
+      position: 'absolute',
+      left: nodeX - NODE_SIZE / 2,
+      top: nodeY - NODE_SIZE / 2,
+      width: NODE_SIZE,
+      alignItems: 'center',
+      zIndex: 10,
+    }}>
     <View
-      className="rounded-full bg-white dark:bg-slate-900 items-center justify-center border-[3px]"
+      className="items-center justify-center rounded-full border-[3px] bg-white dark:bg-slate-900"
       style={{
         width: NODE_SIZE,
         height: NODE_SIZE,
-        borderColor: data.admin ? '#FFD700' : (isDarkMode ? '#1e293b' : 'white'),
+        borderColor: data.admin ? '#FFD700' : isDarkMode ? '#1e293b' : 'white',
         elevation: 5,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -64,12 +79,18 @@ const PersonNode = ({ data, nodeX, nodeY, onPress, isDarkMode }: { data: any; no
         shadowRadius: 4,
       }}>
       {data.imageUrl ? (
-        <Image source={{ uri: data.imageUrl }} style={{ width: '100%', height: '100%', borderRadius: NODE_SIZE / 2 }} resizeMode="cover" />
+        <Image
+          source={{ uri: data.imageUrl }}
+          style={{ width: '100%', height: '100%', borderRadius: NODE_SIZE / 2 }}
+          resizeMode="cover"
+        />
       ) : (
-        <Feather name="user" size={34} color={isDarkMode ? '#475569' : "#9ca3af"} />
+        <Feather name="user" size={34} color={isDarkMode ? '#475569' : '#9ca3af'} />
       )}
     </View>
-    <Text className="mt-2 text-[13px] font-bold text-gray-500 dark:text-slate-400 absolute w-32 text-center" style={{ top: NODE_SIZE }}>
+    <Text
+      className="absolute mt-2 w-32 text-center text-[13px] font-bold text-gray-500 dark:text-slate-400"
+      style={{ top: NODE_SIZE }}>
       {data.name}
     </Text>
   </TouchableOpacity>
@@ -78,8 +99,15 @@ const PersonNode = ({ data, nodeX, nodeY, onPress, isDarkMode }: { data: any; no
 const PlusButton = ({ cx, cy, onPress }: { cx: number; cy: number; onPress: () => void }) => (
   <TouchableOpacity
     onPress={onPress}
-    style={{ position: 'absolute', left: cx - 14, top: cy - 14, width: 28, height: 28, elevation: 4 }}
-    className="items-center justify-center rounded-full bg-[#84cc16] shadow-sm z-20">
+    style={{
+      position: 'absolute',
+      left: cx - 14,
+      top: cy - 14,
+      width: 28,
+      height: 28,
+      elevation: 4,
+    }}
+    className="z-20 items-center justify-center rounded-full bg-[#84cc16] shadow-sm">
     <Feather name="plus" size={16} color="white" />
   </TouchableOpacity>
 );
@@ -95,7 +123,7 @@ export default function TreeScreen() {
   const [treeLoading, setTreeLoading] = useState(true);
   const [treeError, setTreeError] = useState<string | null>(null);
   const [treeRoot, setTreeRoot] = useState<D3TreeNode | null>(null);
-  const [extraLinks, setExtraLinks] = useState<Array<{ sourceId: string; targetId: string }>>([]);
+  const [extraLinks, setExtraLinks] = useState<{ sourceId: string; targetId: string }[]>([]);
 
   const loadTree = React.useCallback(async () => {
     if (!user) return;
@@ -214,7 +242,11 @@ export default function TreeScreen() {
 
   const animatedStyle = useAnimatedStyle(() => {
     return {
-      transform: [{ translateX: translateX.value }, { translateY: translateY.value }, { scale: scale.value }],
+      transform: [
+        { translateX: translateX.value },
+        { translateY: translateY.value },
+        { scale: scale.value },
+      ],
     };
   });
 
@@ -283,7 +315,9 @@ export default function TreeScreen() {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-[#f8f9f6] dark:bg-slate-950">
         <LottieView
-          source={{ uri: 'https://lottie.host/e80c1d31-b731-43b0-b47b-0db6d116b3d2/axUS3P5Rhp.lottie' }}
+          source={{
+            uri: 'https://lottie.host/e80c1d31-b731-43b0-b47b-0db6d116b3d2/axUS3P5Rhp.lottie',
+          }}
           autoPlay
           loop
           speed={2.0}
@@ -295,8 +329,10 @@ export default function TreeScreen() {
 
   if (treeError) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-[#f8f9f6] dark:bg-slate-950 px-10">
-        <Text className="mb-2 text-center text-lg font-bold text-gray-800 dark:text-white">Tree not found</Text>
+      <SafeAreaView className="flex-1 items-center justify-center bg-[#f8f9f6] px-10 dark:bg-slate-950">
+        <Text className="mb-2 text-center text-lg font-bold text-gray-800 dark:text-white">
+          Tree not found
+        </Text>
         <Text className="text-center text-sm text-gray-400 dark:text-slate-500">{treeError}</Text>
       </SafeAreaView>
     );
@@ -328,12 +364,20 @@ export default function TreeScreen() {
                 const midY = (sourceY + targetY) / 2;
 
                 const d = `M${sourceX},${sourceY} L${sourceX},${midY} L${targetX},${midY} L${targetX},${targetY}`;
-                return <Path key={`tree-link-${link.source.data.id}-${link.target.data.id}-${index}`} d={d} fill="none" stroke={isDarkMode ? '#1e293b' : "#d1d5db"} strokeWidth="2" />;
+                return (
+                  <Path
+                    key={`tree-link-${link.source.data.id}-${link.target.data.id}-${index}`}
+                    d={d}
+                    fill="none"
+                    stroke={isDarkMode ? '#1e293b' : '#d1d5db'}
+                    strokeWidth="2"
+                  />
+                );
               })}
 
               {extraLinks.map((link, index) => {
-                const sourceNode = treeNodes.find(n => n.data.id === link.sourceId);
-                const targetHostNode = treeNodes.find(n => n.data.spouse?.id === link.targetId);
+                const sourceNode = treeNodes.find((n) => n.data.id === link.sourceId);
+                const targetHostNode = treeNodes.find((n) => n.data.spouse?.id === link.targetId);
 
                 if (!sourceNode || !targetHostNode) return null;
 
@@ -346,7 +390,16 @@ export default function TreeScreen() {
                 const midY = (sourceY + targetY) / 2;
 
                 const d = `M${sourceX},${sourceY} L${sourceX},${midY} L${targetX},${midY} L${targetX},${targetY}`;
-                return <Path key={`extra-link-${index}`} d={d} fill="none" stroke={isDarkMode ? '#1e293b' : "#d1d5db"} strokeWidth="2" strokeDasharray="4 4" />;
+                return (
+                  <Path
+                    key={`extra-link-${index}`}
+                    d={d}
+                    fill="none"
+                    stroke={isDarkMode ? '#1e293b' : '#d1d5db'}
+                    strokeWidth="2"
+                    strokeDasharray="4 4"
+                  />
+                );
               })}
             </Svg>
 
@@ -358,7 +411,8 @@ export default function TreeScreen() {
               const isLeaf = !node.children || node.children.length === 0;
               const isOldest = node.parent?.data.id === 'VIRTUAL_ROOT' || !node.parent;
               const pos = getButtonPosition(isOldest, isLeaf, false, !!data.spouse, nodeX, originX);
-              let bx = 0, by = 0;
+              let bx = 0,
+                by = 0;
               if (pos === 'TOP') by = -62;
               if (pos === 'BOTTOM') by = 86; // Ensures uniform gap between name text and button
               if (pos === 'LEFT') bx = -62;
@@ -366,14 +420,57 @@ export default function TreeScreen() {
 
               return (
                 <View key={`tree-${data.id}-${node.x}-${node.y}`}>
-                  <PersonNode data={data} nodeX={nodeX} nodeY={nodeY} onPress={() => router.push(`/member/${data.id}`)} isDarkMode={isDarkMode} />
-                  <PlusButton cx={nodeX + bx} cy={nodeY + by} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.id, relativeName: data.name } })} />
+                  <PersonNode
+                    data={data}
+                    nodeX={nodeX}
+                    nodeY={nodeY}
+                    onPress={() => router.push(`/member/${data.id}`)}
+                    isDarkMode={isDarkMode}
+                  />
+                  <PlusButton
+                    cx={nodeX + bx}
+                    cy={nodeY + by}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/member/add',
+                        params: { relativeId: data.id, relativeName: data.name },
+                      })
+                    }
+                  />
 
                   {data.spouse && (
                     <>
-                      <View style={{ position: 'absolute', left: nodeX + NODE_SIZE / 2, top: nodeY - 1, width: 56, height: 2, backgroundColor: isDarkMode ? '#1e293b' : '#d1d5db', zIndex: 1 }} />
-                      <PersonNode data={data.spouse} nodeX={nodeX + 132} nodeY={nodeY} onPress={() => router.push(`/member/${data.spouse!.id}`)} isDarkMode={isDarkMode} />
-                      <PlusButton cx={nodeX + 132 + 62} cy={nodeY} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.spouse!.id, relativeName: data.spouse!.name } })} />
+                      <View
+                        style={{
+                          position: 'absolute',
+                          left: nodeX + NODE_SIZE / 2,
+                          top: nodeY - 1,
+                          width: 56,
+                          height: 2,
+                          backgroundColor: isDarkMode ? '#1e293b' : '#d1d5db',
+                          zIndex: 1,
+                        }}
+                      />
+                      <PersonNode
+                        data={data.spouse}
+                        nodeX={nodeX + 132}
+                        nodeY={nodeY}
+                        onPress={() => router.push(`/member/${data.spouse!.id}`)}
+                        isDarkMode={isDarkMode}
+                      />
+                      <PlusButton
+                        cx={nodeX + 132 + 62}
+                        cy={nodeY}
+                        onPress={() =>
+                          router.push({
+                            pathname: '/member/add',
+                            params: {
+                              relativeId: data.spouse!.id,
+                              relativeName: data.spouse!.name,
+                            },
+                          })
+                        }
+                      />
                     </>
                   )}
                 </View>

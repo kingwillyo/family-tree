@@ -50,7 +50,8 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
   };
 
   const AuthorSection = ({ isBottom = false }: { isBottom?: boolean }) => (
-    <View className={`${isBottom ? 'mt-6 border-t border-gray-100 dark:border-slate-800 pt-6' : 'mb-4'} flex-row items-center justify-between`}>
+    <View
+      className={`${isBottom ? 'mt-6 border-t border-gray-100 pt-6 dark:border-slate-800' : 'mb-4'} flex-row items-center justify-between`}>
       <View className="flex-row items-center">
         {memory.author.avatar ? (
           <Image
@@ -63,7 +64,9 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
           </View>
         )}
         <View>
-          <Text className="text-[15px] font-bold text-gray-900 dark:text-white">{memory.author.name}</Text>
+          <Text className="text-[15px] font-bold text-gray-900 dark:text-white">
+            {memory.author.name}
+          </Text>
           <Text className="mt-1 text-[10px] font-bold uppercase tracking-widest text-gray-400 dark:text-slate-500">
             {memory.author.added}
           </Text>
@@ -87,14 +90,20 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
         {hasDate && (
           <>
             <Feather name="calendar" size={12} color="#6b7280" />
-            <Text className="ml-1.5 text-[13px] font-medium text-gray-500 dark:text-slate-400">{memory.content.date}</Text>
+            <Text className="ml-1.5 text-[13px] font-medium text-gray-500 dark:text-slate-400">
+              {memory.content.date}
+            </Text>
           </>
         )}
-        {hasDate && hasLocation && <Text className="mx-2 text-[13px] text-gray-400 dark:text-slate-600">•</Text>}
+        {hasDate && hasLocation && (
+          <Text className="mx-2 text-[13px] text-gray-400 dark:text-slate-600">•</Text>
+        )}
         {hasLocation && (
           <>
             <Feather name="map-pin" size={12} color="#6b7280" />
-            <Text className="ml-1.5 text-[13px] font-medium text-gray-500 dark:text-slate-400">{memory.content.location}</Text>
+            <Text className="ml-1.5 text-[13px] font-medium text-gray-500 dark:text-slate-400">
+              {memory.content.location}
+            </Text>
           </>
         )}
       </View>
@@ -105,7 +114,8 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
   if (memory.type === 'photo') {
     return (
       <CardWrapper>
-        <View className={`${isFullView ? '' : 'rounded-3xl bg-white dark:bg-slate-900 p-4 shadow-sm'}`}>
+        <View
+          className={`${isFullView ? '' : 'rounded-3xl bg-white p-4 shadow-sm dark:bg-slate-900'}`}>
           {!isFullView && <AuthorSection />}
 
           {/* Image Content */}
@@ -118,8 +128,14 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
               return (
                 <View className="mb-4 gap-y-3">
                   {images.map((url, i) => (
-                    <View key={url + i} className="overflow-hidden rounded-2xl bg-gray-100 dark:bg-slate-800">
-                      <Image source={{ uri: url }} className="h-[350px] w-full" resizeMode="cover" />
+                    <View
+                      key={url + i}
+                      className="overflow-hidden rounded-2xl bg-gray-100 dark:bg-slate-800">
+                      <Image
+                        source={{ uri: url }}
+                        className="h-[350px] w-full"
+                        resizeMode="cover"
+                      />
                     </View>
                   ))}
                 </View>
@@ -129,7 +145,11 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
             if (images.length === 1) {
               return (
                 <View className="mb-4 overflow-hidden rounded-2xl bg-gray-100 dark:bg-slate-800">
-                  <Image source={{ uri: images[0] }} className="h-[220px] w-full" resizeMode="cover" />
+                  <Image
+                    source={{ uri: images[0] }}
+                    className="h-[220px] w-full"
+                    resizeMode="cover"
+                  />
                 </View>
               );
             }
@@ -138,10 +158,18 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
               return (
                 <View className="mb-4 h-[220px] flex-row gap-2 overflow-hidden rounded-2xl">
                   <View className="flex-1 bg-gray-100 dark:bg-slate-800">
-                    <Image source={{ uri: images[0] }} className="h-full w-full" resizeMode="cover" />
+                    <Image
+                      source={{ uri: images[0] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
                   </View>
                   <View className="flex-1 bg-gray-100 dark:bg-slate-800">
-                    <Image source={{ uri: images[1] }} className="h-full w-full" resizeMode="cover" />
+                    <Image
+                      source={{ uri: images[1] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
                   </View>
                 </View>
               );
@@ -151,14 +179,26 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
               return (
                 <View className="mb-4 h-[240px] flex-row gap-2 overflow-hidden rounded-2xl">
                   <View className="flex-[2] bg-gray-100 dark:bg-slate-800">
-                    <Image source={{ uri: images[0] }} className="h-full w-full" resizeMode="cover" />
+                    <Image
+                      source={{ uri: images[0] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
                   </View>
                   <View className="flex-1 flex-col gap-2">
                     <View className="flex-1 bg-gray-100 dark:bg-slate-800">
-                      <Image source={{ uri: images[1] }} className="h-full w-full" resizeMode="cover" />
+                      <Image
+                        source={{ uri: images[1] }}
+                        className="h-full w-full"
+                        resizeMode="cover"
+                      />
                     </View>
                     <View className="flex-1 bg-gray-100 dark:bg-slate-800">
-                      <Image source={{ uri: images[2] }} className="h-full w-full" resizeMode="cover" />
+                      <Image
+                        source={{ uri: images[2] }}
+                        className="h-full w-full"
+                        resizeMode="cover"
+                      />
                     </View>
                   </View>
                 </View>
@@ -168,21 +208,39 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
               <View className="mb-4 h-[240px] flex-col gap-2 overflow-hidden rounded-2xl">
                 <View className="flex-1 flex-row gap-2">
                   <View className="flex-1 bg-gray-100 dark:bg-slate-800">
-                    <Image source={{ uri: images[0] }} className="h-full w-full" resizeMode="cover" />
+                    <Image
+                      source={{ uri: images[0] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
                   </View>
                   <View className="flex-1 bg-gray-100 dark:bg-slate-800">
-                    <Image source={{ uri: images[1] }} className="h-full w-full" resizeMode="cover" />
+                    <Image
+                      source={{ uri: images[1] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
                   </View>
                 </View>
                 <View className="flex-1 flex-row gap-2">
                   <View className="flex-1 bg-gray-100 dark:bg-slate-800">
-                    <Image source={{ uri: images[2] }} className="h-full w-full" resizeMode="cover" />
+                    <Image
+                      source={{ uri: images[2] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
                   </View>
                   <View className="relative flex-1 bg-gray-100 dark:bg-slate-800">
-                    <Image source={{ uri: images[3] }} className="h-full w-full" resizeMode="cover" />
+                    <Image
+                      source={{ uri: images[3] }}
+                      className="h-full w-full"
+                      resizeMode="cover"
+                    />
                     {images.length > 4 && (
                       <View className="absolute inset-0 items-center justify-center bg-black/50">
-                        <Text className="text-[20px] font-bold text-white">+{images.length - 4}</Text>
+                        <Text className="text-[20px] font-bold text-white">
+                          +{images.length - 4}
+                        </Text>
                       </View>
                     )}
                   </View>
@@ -202,7 +260,9 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
           {/* Tags */}
           <View className="flex-row flex-wrap gap-2">
             {memory.content.tags?.map((tag, idx) => (
-              <View key={idx} className="rounded-full bg-[#f0f9ed] dark:bg-emerald-950/20 px-3 py-1.5">
+              <View
+                key={idx}
+                className="rounded-full bg-[#f0f9ed] px-3 py-1.5 dark:bg-emerald-950/20">
                 <Text className="text-[12px] font-bold text-[#65a30d]">{tag}</Text>
               </View>
             ))}
@@ -218,11 +278,12 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
   if (memory.type === 'audio') {
     return (
       <CardWrapper>
-        <View className={`${isFullView ? '' : 'rounded-3xl bg-white dark:bg-slate-900 p-4 shadow-sm'}`}>
+        <View
+          className={`${isFullView ? '' : 'rounded-3xl bg-white p-4 shadow-sm dark:bg-slate-900'}`}>
           {!isFullView && <AuthorSection />}
 
           {/* Custom Audio Player */}
-          <View className="mb-4 flex-row items-center rounded-2xl border border-[#f0f5ee] dark:border-slate-800 bg-[#fbfdf9] dark:bg-slate-950 p-4">
+          <View className="mb-4 flex-row items-center rounded-2xl border border-[#f0f5ee] bg-[#fbfdf9] p-4 dark:border-slate-800 dark:bg-slate-950">
             <TouchableOpacity className="mr-4 h-12 w-12 items-center justify-center rounded-full bg-[#84cc16]">
               <Ionicons name="play" size={22} color="white" style={{ marginLeft: 3 }} />
             </TouchableOpacity>
@@ -241,8 +302,12 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
                 })}
               </View>
               <View className="w-[90%] flex-row justify-between">
-                <Text className="text-[10px] font-bold text-gray-500 dark:text-slate-400">{memory.content.currentTime}</Text>
-                <Text className="text-[10px] font-bold text-gray-400 dark:text-slate-500">{memory.content.duration}</Text>
+                <Text className="text-[10px] font-bold text-gray-500 dark:text-slate-400">
+                  {memory.content.currentTime}
+                </Text>
+                <Text className="text-[10px] font-bold text-gray-400 dark:text-slate-500">
+                  {memory.content.duration}
+                </Text>
               </View>
             </View>
           </View>
@@ -258,7 +323,9 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
           {/* Tags */}
           <View className="mb-4 flex-row flex-wrap gap-2">
             {memory.content.tags?.map((tag, idx) => (
-              <View key={idx} className="rounded-full bg-[#f0f9ed] dark:bg-emerald-950/20 px-3 py-1.5">
+              <View
+                key={idx}
+                className="rounded-full bg-[#f0f9ed] px-3 py-1.5 dark:bg-emerald-950/20">
                 <Text className="text-[12px] font-bold text-[#65a30d]">{tag}</Text>
               </View>
             ))}
@@ -274,7 +341,8 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
   if (memory.type === 'story') {
     return (
       <CardWrapper>
-        <View className={`${isFullView ? '' : 'rounded-3xl bg-white dark:bg-slate-900 p-5 shadow-sm'}`}>
+        <View
+          className={`${isFullView ? '' : 'rounded-3xl bg-white p-5 shadow-sm dark:bg-slate-900'}`}>
           {!isFullView && <AuthorSection />}
 
           {!isFullView && (
@@ -295,11 +363,14 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
                 className="pt-2 text-[16px] font-medium italic leading-7 text-gray-700 dark:text-slate-300">
                 {memory.content.excerpt}
               </Text>
-              {!isFullView && onPress && memory.content.excerpt && memory.content.excerpt.length > 100 && (
-                <TouchableOpacity onPress={onPress} className="mt-2">
-                  <Text className="text-[14px] font-bold text-[#84cc16]">Read more</Text>
-                </TouchableOpacity>
-              )}
+              {!isFullView &&
+                onPress &&
+                memory.content.excerpt &&
+                memory.content.excerpt.length > 100 && (
+                  <TouchableOpacity onPress={onPress} className="mt-2">
+                    <Text className="text-[14px] font-bold text-[#84cc16]">Read more</Text>
+                  </TouchableOpacity>
+                )}
             </View>
           </View>
 
@@ -308,7 +379,9 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
           {/* Footer Row */}
           <View className="flex-row flex-wrap gap-2">
             {memory.content.tags?.map((tag, idx) => (
-              <View key={idx} className="rounded-full bg-[#f0f9ed] dark:bg-emerald-950/20 px-3 py-1.5">
+              <View
+                key={idx}
+                className="rounded-full bg-[#f0f9ed] px-3 py-1.5 dark:bg-emerald-950/20">
                 <Text className="text-[12px] font-bold text-[#65a30d]">{tag}</Text>
               </View>
             ))}
