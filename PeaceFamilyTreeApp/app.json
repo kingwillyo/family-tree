@@ -10,7 +10,10 @@
     "experiments": {
       "tsconfigPaths": true
     },
-    "plugins": ["expo-router", "@react-native-community/datetimepicker"],
+    "plugins": [
+      "expo-router",
+      "@react-native-community/datetimepicker"
+    ],
     "orientation": "portrait",
     "icon": "./assets/ios-light.png",
     "userInterfaceStyle": "automatic",
@@ -23,14 +26,19 @@
         "backgroundColor": "#000000"
       }
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "com.kingwillyo.lineagex",
       "icon": {
         "light": "./assets/ios-light.png",
         "dark": "./assets/ios-dark.png",
         "tinted": "./assets/ios-tinted.png"
+      },
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -38,6 +46,12 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
+      }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "bf442e79-f7e0-428e-a206-7c2e32f7e667"
       }
     }
   }
