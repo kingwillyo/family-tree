@@ -810,9 +810,23 @@ export default function MemberProfileScreen() {
           <Text className="mb-6 text-[22px] font-bold text-gray-900 dark:text-white">Family Connections</Text>
 
           {connections.length === 0 ? (
-            <View className="items-center py-6">
-              <Text className="text-[13px] text-gray-300 dark:text-slate-600">No connections yet.</Text>
-            </View>
+            <TouchableOpacity
+              onPress={() => router.push({
+                pathname: '/member/add',
+                params: { relativeId: profile.id, relativeName: profile.full_name },
+              })}
+              className="flex-row items-center rounded-[24px] border-2 border-dashed border-emerald-200 bg-emerald-50/50 px-5 py-5 dark:border-emerald-900 dark:bg-emerald-950/10">
+              <View className="mr-4 h-12 w-12 items-center justify-center rounded-full bg-emerald-100 dark:bg-emerald-950/40">
+                <Feather name="user-plus" size={22} color="#059669" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-[16px] font-bold text-gray-900 dark:text-white">Add a family member</Text>
+                <Text className="mt-1 text-[13px] text-gray-500 dark:text-slate-400">
+                  Add someone related to {profile.full_name.split(' ')[0]}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={20} color="#059669" />
+            </TouchableOpacity>
           ) : (
             <ScrollView
               horizontal
@@ -845,10 +859,17 @@ export default function MemberProfileScreen() {
 
               {/* Add Connection placeholder */}
               <View className="mr-6 items-center">
-                <TouchableOpacity className="mb-3 h-[80px] w-[80px] items-center justify-center rounded-full border-2 border-dashed border-gray-300">
-                  <Text className="text-2xl font-bold text-gray-300">+</Text>
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={`Add someone related to ${profile.full_name}`}
+                  onPress={() => router.push({
+                    pathname: '/member/add',
+                    params: { relativeId: profile.id, relativeName: profile.full_name },
+                  })}
+                  className="mb-3 h-[80px] w-[80px] items-center justify-center rounded-full border-2 border-dashed border-emerald-300 dark:border-emerald-900">
+                  <Feather name="user-plus" size={24} color="#059669" />
                 </TouchableOpacity>
-                <Text className="text-[14px] font-bold text-gray-300">Add</Text>
+                <Text className="text-[14px] font-bold text-emerald-700 dark:text-emerald-400">Add relative</Text>
               </View>
             </ScrollView>
           )}

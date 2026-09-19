@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Platform } from 'react-native';
+import { View, TouchableOpacity, Platform, Text } from 'react-native';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useColorScheme } from 'nativewind';
@@ -9,13 +9,15 @@ export interface TreeFloatingControlsProps {
   onZoomOut: () => void;
   onCenter: () => void;
   onInvite?: () => void;
+  onAddMember?: () => void;
 }
 
 export function TreeFloatingControls({ 
   onZoomIn, 
   onZoomOut, 
   onCenter,
-  onInvite
+  onInvite,
+  onAddMember,
 }: TreeFloatingControlsProps) {
   const insets = useSafeAreaInsets();
   const { colorScheme } = useColorScheme();
@@ -69,6 +71,24 @@ export function TreeFloatingControls({
           <Feather name="send" size={22} color={isDarkMode ? '#94a3b8' : "#6b7280"} />
         </TouchableOpacity>
       </View>
+
+      <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="Add a family member"
+        activeOpacity={0.85}
+        onPress={onAddMember}
+        className="absolute right-6 h-14 flex-row items-center rounded-full bg-[#064e3b] px-5"
+        style={{
+          bottom: bottomOffset,
+          shadowColor: '#064e3b',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.24,
+          shadowRadius: 12,
+          elevation: 6,
+        }}>
+        <Feather name="user-plus" size={20} color="white" />
+        <Text className="ml-2 text-[16px] font-bold text-white">Add family member</Text>
+      </TouchableOpacity>
     </>
   );
 }

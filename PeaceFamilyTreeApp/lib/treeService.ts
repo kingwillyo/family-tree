@@ -268,8 +268,47 @@ export async function addMember(
   createdBy: string,
   familyId: string,
   relativeId?: string,
-  relationType?: 'parent' | 'child' | 'spouse'
+  relationType?: 'parent' | 'child' | 'spouse' | 'sibling'
 ): Promise<{ profileId: string } | { error: string }> {
+  // Siblings are stored through their shared parent(s), rather than as a
+  // separate relationship type. This keeps the family graph consistent and
+  // lets the tree derive sibling relationships naturally.
+  let sharedParentIds: string[] = [];
+  if (relativeId && relationType === 'sibling') {
+    const { data: relativeRelationships, error: relationshipsError } = await supabase
+      .from('relationships')
+      .select('from_profile_id, to_profile_id, relationship_type')
+      .or(`from_profile_id.eq.${relativeId},to_profile_id.eq.${relativeId}`);
+
+    if (relationshipsError) {
+      return { error: relationshipsError.message };
+    }
+
+    sharedParentIds = [
+      ...new Set(
+        (relativeRelationships ?? []).flatMap((relationship) => {
+          if (
+            relationship.from_profile_id === relativeId &&
+            relationship.relationship_type === 'parent'
+          ) {
+            return [relationship.to_profile_id];
+          }
+          if (
+            relationship.to_profile_id === relativeId &&
+            relationship.relationship_type === 'child'
+          ) {
+            return [relationship.from_profile_id];
+          }
+          return [];
+        })
+      ),
+    ];
+
+    if (sharedParentIds.length === 0) {
+      return { error: 'Add a shared parent before adding a brother or sister.' };
+    }
+  }
+
   // 1. Insert profile
   const { data: profile, error: profileError } = await supabase
     .from('profiles')
@@ -295,11 +334,27 @@ export async function addMember(
 
   // 2. Insert relationship pair (if applicable)
   if (relativeId && relationType) {
-    const inverseType = INVERSE[relationType];
-    const relsToInsert = [
-      { from_profile_id: newId, to_profile_id: relativeId, relationship_type: inverseType, created_by: createdBy },
-      { from_profile_id: relativeId, to_profile_id: newId, relationship_type: relationType, created_by: createdBy },
-    ];
+    const relsToInsert: {
+      from_profile_id: string;
+      to_profile_id: string;
+      relationship_type: 'parent' | 'child' | 'spouse';
+      created_by: string;
+    }[] = [];
+
+    if (relationType === 'sibling') {
+      for (const parentId of sharedParentIds) {
+        relsToInsert.push(
+          { from_profile_id: parentId, to_profile_id: newId, relationship_type: 'child', created_by: createdBy },
+          { from_profile_id: newId, to_profile_id: parentId, relationship_type: 'parent', created_by: createdBy }
+        );
+      }
+    } else {
+      const inverseType = INVERSE[relationType];
+      relsToInsert.push(
+        { from_profile_id: newId, to_profile_id: relativeId, relationship_type: inverseType, created_by: createdBy },
+        { from_profile_id: relativeId, to_profile_id: newId, relationship_type: relationType, created_by: createdBy }
+      );
+    }
 
     // --- Relationship Inheritance ---
     
@@ -307,13 +362,29 @@ export async function addMember(
     if (relationType === 'spouse') {
       const { data: children } = await supabase
         .from('relationships')
-        .select('*')
-        .or(`from_profile_id.eq.${relativeId},to_profile_id.eq.${relativeId}`)
-        .eq('relationship_type', 'child');
+        .select('from_profile_id, to_profile_id, relationship_type')
+        .or(`from_profile_id.eq.${relativeId},to_profile_id.eq.${relativeId}`);
 
       if (children) {
-        for (const c of children) {
-          const childId = c.from_profile_id === relativeId ? c.to_profile_id : c.from_profile_id;
+        const childIds = new Set(
+          children.flatMap((relationship) => {
+            if (
+              relationship.from_profile_id === relativeId &&
+              relationship.relationship_type === 'child'
+            ) {
+              return [relationship.to_profile_id];
+            }
+            if (
+              relationship.to_profile_id === relativeId &&
+              relationship.relationship_type === 'parent'
+            ) {
+              return [relationship.from_profile_id];
+            }
+            return [];
+          })
+        );
+
+        for (const childId of childIds) {
           relsToInsert.push(
             { from_profile_id: newId, to_profile_id: childId, relationship_type: 'child', created_by: createdBy },
             { from_profile_id: childId, to_profile_id: newId, relationship_type: 'parent', created_by: createdBy }
@@ -326,13 +397,20 @@ export async function addMember(
     if (relationType === 'child') {
       const { data: spouses } = await supabase
         .from('relationships')
-        .select('*')
+        .select('from_profile_id, to_profile_id, relationship_type')
         .or(`from_profile_id.eq.${relativeId},to_profile_id.eq.${relativeId}`)
         .eq('relationship_type', 'spouse');
 
       if (spouses) {
-        for (const s of spouses) {
-          const spouseId = s.from_profile_id === relativeId ? s.to_profile_id : s.from_profile_id;
+        const spouseIds = new Set(
+          spouses.map((relationship) =>
+            relationship.from_profile_id === relativeId
+              ? relationship.to_profile_id
+              : relationship.from_profile_id
+          )
+        );
+
+        for (const spouseId of spouseIds) {
           relsToInsert.push(
             { from_profile_id: spouseId, to_profile_id: newId, relationship_type: 'child', created_by: createdBy },
             { from_profile_id: newId, to_profile_id: spouseId, relationship_type: 'parent', created_by: createdBy }

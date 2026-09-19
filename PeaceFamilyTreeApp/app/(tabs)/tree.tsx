@@ -29,24 +29,6 @@ const NODE_SIZE = 76;
 const NODE_SPACING_X = 320;
 const NODE_SPACING_Y = 160;
 
-type ButtonPos = 'TOP' | 'BOTTOM' | 'LEFT' | 'RIGHT';
-
-function getButtonPosition(
-  isOldestAncestor: boolean,
-  isLeafDescendant: boolean,
-  isSpouse: boolean,
-  hasSpouse: boolean,
-  nodeX: number,
-  originX: number
-): ButtonPos {
-  if (isOldestAncestor) return 'TOP';
-  if (isLeafDescendant) return 'BOTTOM';
-  if (isSpouse) return 'RIGHT';
-  if (hasSpouse) return 'LEFT';
-  if (nodeX < originX) return 'LEFT';
-  return 'RIGHT';
-}
-
 const PersonNode = ({ data, nodeX, nodeY, onPress, isDarkMode }: { data: any; nodeX: number; nodeY: number; onPress: () => void; isDarkMode: boolean }) => (
   <TouchableOpacity
     onPress={onPress}
@@ -72,15 +54,6 @@ const PersonNode = ({ data, nodeX, nodeY, onPress, isDarkMode }: { data: any; no
     <Text className="mt-2 text-[13px] font-bold text-gray-500 dark:text-slate-400 absolute w-32 text-center" style={{ top: NODE_SIZE }}>
       {data.name}
     </Text>
-  </TouchableOpacity>
-);
-
-const PlusButton = ({ cx, cy, onPress }: { cx: number; cy: number; onPress: () => void }) => (
-  <TouchableOpacity
-    onPress={onPress}
-    style={{ position: 'absolute', left: cx - 14, top: cy - 14, width: 28, height: 28, elevation: 4 }}
-    className="items-center justify-center rounded-full bg-[#84cc16] shadow-sm z-20">
-    <Feather name="plus" size={16} color="white" />
   </TouchableOpacity>
 );
 
@@ -355,25 +328,14 @@ export default function TreeScreen() {
               const nodeX = originX + x + treeOffsetX;
               const nodeY = originY + y + treeOffsetY;
 
-              const isLeaf = !node.children || node.children.length === 0;
-              const isOldest = node.parent?.data.id === 'VIRTUAL_ROOT' || !node.parent;
-              const pos = getButtonPosition(isOldest, isLeaf, false, !!data.spouse, nodeX, originX);
-              let bx = 0, by = 0;
-              if (pos === 'TOP') by = -62;
-              if (pos === 'BOTTOM') by = 86; // Ensures uniform gap between name text and button
-              if (pos === 'LEFT') bx = -62;
-              if (pos === 'RIGHT') bx = 62;
-
               return (
                 <View key={`tree-${data.id}-${node.x}-${node.y}`}>
                   <PersonNode data={data} nodeX={nodeX} nodeY={nodeY} onPress={() => router.push(`/member/${data.id}`)} isDarkMode={isDarkMode} />
-                  <PlusButton cx={nodeX + bx} cy={nodeY + by} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.id, relativeName: data.name } })} />
 
                   {data.spouse && (
                     <>
                       <View style={{ position: 'absolute', left: nodeX + NODE_SIZE / 2, top: nodeY - 1, width: 56, height: 2, backgroundColor: isDarkMode ? '#1e293b' : '#d1d5db', zIndex: 1 }} />
                       <PersonNode data={data.spouse} nodeX={nodeX + 132} nodeY={nodeY} onPress={() => router.push(`/member/${data.spouse!.id}`)} isDarkMode={isDarkMode} />
-                      <PlusButton cx={nodeX + 132 + 62} cy={nodeY} onPress={() => router.push({ pathname: '/member/add', params: { relativeId: data.spouse!.id, relativeName: data.spouse!.name } })} />
                     </>
                   )}
                 </View>
@@ -388,6 +350,7 @@ export default function TreeScreen() {
         onZoomOut={handleZoomOut}
         onCenter={centerTree}
         onInvite={() => router.push('/invite')}
+        onAddMember={() => router.push('/member/add')}
       />
 
       <TreeSearchButton onSearch={handleSearch} />
