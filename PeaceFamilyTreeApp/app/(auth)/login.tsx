@@ -10,12 +10,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
+import { GoogleAuthButton } from '../../components/GoogleAuthButton';
 import { Input } from '../../components/Input';
 import { useAuth } from '../../lib/auth-context';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function LoginScreen() {
-  const { signIn, signInWithOtp, verifyOtp, loading } = useAuth();
+  const { signIn, signInWithOtp, verifyOtp, signInWithGoogle, loading } = useAuth();
   
   // 'email_password' or 'email_otp_request' or 'email_otp_verify'
   const [loginMethod, setLoginMethod] = useState<'email_password' | 'email_otp_request' | 'email_otp_verify'>('email_otp_request');
@@ -24,6 +25,7 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -74,6 +76,16 @@ export default function LoginScreen() {
     }
   };
 
+  const handleGoogleSignIn = async () => {
+    setError('');
+    setGoogleLoading(true);
+    const result = await signInWithGoogle();
+    setGoogleLoading(false);
+    if (result?.error) {
+      setError(result.error.message || 'Google sign-in failed. Please try again.');
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <KeyboardAvoidingView
@@ -104,6 +116,23 @@ export default function LoginScreen() {
 
           <View>
             {loginMethod !== 'email_otp_verify' && (
+              <>
+                <GoogleAuthButton
+                  title="Continue with Google"
+                  onPress={handleGoogleSignIn}
+                  loading={googleLoading}
+                  disabled={loading && !googleLoading}
+                />
+
+                <View className="my-6 flex-row items-center">
+                  <View className="h-[1px] flex-1 bg-gray-200" />
+                  <Text className="mx-4 text-sm text-gray-400">or continue with email</Text>
+                  <View className="h-[1px] flex-1 bg-gray-200" />
+                </View>
+              </>
+            )}
+
+            {loginMethod !== 'email_otp_verify' && (
               <Input
                 placeholder="Enter email address"
                 autoCapitalize="none"
@@ -124,7 +153,7 @@ export default function LoginScreen() {
 
             {loginMethod === 'email_otp_verify' && (
               <>
-                <Text className="mb-4 text-gray-700">We've sent a login code to {email}</Text>
+                <Text className="mb-4 text-gray-700">We’ve sent a login code to {email}</Text>
                 <Input
                   placeholder="6-digit code"
                   keyboardType="number-pad"
@@ -178,7 +207,7 @@ export default function LoginScreen() {
             )}
 
             <View className="mt-8 flex-row items-center justify-center">
-              <Text className="text-base text-gray-600">Don't have an account? </Text>
+              <Text className="text-base text-gray-600">Don’t have an account? </Text>
               <Link href="/(auth)/register" asChild>
                 <TouchableOpacity>
                   <Text className="text-base font-semibold text-emerald-600">Sign Up</Text>

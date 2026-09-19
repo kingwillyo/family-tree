@@ -29,7 +29,7 @@ export function TreeFloatingControls({
   return (
     <>
       {/* FLOATING CONTROLS - LEFT */}
-      <View className="absolute left-6 gap-y-4" style={{ bottom: bottomOffset }}>
+      <View className="absolute left-6 gap-y-4" style={{ bottom: bottomOffset + 72 }}>
         <View
           className="elevation-3 w-14 overflow-hidden rounded-[20px] border border-gray-100/50 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm"
           style={{
@@ -77,7 +77,7 @@ export function TreeFloatingControls({
         accessibilityLabel="Add a family member"
         activeOpacity={0.85}
         onPress={onAddMember}
-        className="absolute right-6 h-14 flex-row items-center rounded-full bg-[#064e3b] px-5"
+        className="absolute left-6 right-6 h-14 flex-row items-center justify-center rounded-full bg-[#064e3b] px-5"
         style={{
           bottom: bottomOffset,
           shadowColor: '#064e3b',

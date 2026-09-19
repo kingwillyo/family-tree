@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Button } from '../../components/Button';
+import { GoogleAuthButton } from '../../components/GoogleAuthButton';
 import { Input } from '../../components/Input';
 import { useAuth } from '../../lib/auth-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
@@ -18,7 +19,7 @@ import { useColorScheme } from 'nativewind';
 type Mode = 'choose' | 'email' | 'otp';
 
 export default function RegisterScreen() {
-  const { signInWithOtp, verifyOtp, loading } = useAuth();
+  const { signInWithOtp, verifyOtp, signInWithGoogle, loading } = useAuth();
   const { colorScheme } = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
@@ -27,6 +28,7 @@ export default function RegisterScreen() {
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(0);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -73,6 +75,16 @@ export default function RegisterScreen() {
       setError(result.error.message || 'Invalid code. Please try again.');
     }
     // On success, _layout.tsx navigation guard routes to /onboarding automatically
+  };
+
+  const handleGoogleSignUp = async () => {
+    setError('');
+    setGoogleLoading(true);
+    const result = await signInWithGoogle();
+    setGoogleLoading(false);
+    if (result?.error) {
+      setError(result.error.message || 'Google sign-up failed. Please try again.');
+    }
   };
 
   const handleBack = () => {
@@ -146,7 +158,7 @@ export default function RegisterScreen() {
                     Join Family
                   </Text>
                   <Text className="text-[13px] text-gray-500 dark:text-slate-400" numberOfLines={2}>
-                    Got an invite code? Enter it to join your family's tree.
+                    Got an invite code? Enter it to join your family’s tree.
                   </Text>
                 </View>
                 <Feather name="chevron-right" size={20} color={isDarkMode ? '#475569' : '#9ca3af'} />
@@ -171,11 +183,24 @@ export default function RegisterScreen() {
             <View>
               <View className="mb-10">
                 <Text className="mb-3 text-[28px] font-extrabold text-gray-900 dark:text-white leading-tight">
-                  What's your email?
+                  Create your account
                 </Text>
                 <Text className="text-base text-gray-500 dark:text-slate-400">
-                  A verification code will be sent to your email.
+                  Continue with Google or use your email address.
                 </Text>
+              </View>
+
+              <GoogleAuthButton
+                title="Sign up with Google"
+                onPress={handleGoogleSignUp}
+                loading={googleLoading}
+                disabled={loading && !googleLoading}
+              />
+
+              <View className="my-6 flex-row items-center">
+                <View className="h-[1px] flex-1 bg-gray-200 dark:bg-slate-800" />
+                <Text className="mx-4 text-sm text-gray-400 dark:text-slate-500">or use email</Text>
+                <View className="h-[1px] flex-1 bg-gray-200 dark:bg-slate-800" />
               </View>
 
               <Input
@@ -209,7 +234,7 @@ export default function RegisterScreen() {
                   Enter verification code
                 </Text>
                 <Text className="text-base text-gray-500 dark:text-slate-400">
-                  We've sent a code to{' '}
+                  We’ve sent a code to{' '}
                   <Text className="font-bold text-gray-700 dark:text-white">{email}</Text>
                 </Text>
               </View>

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -27,6 +28,7 @@ import {
 type FlowStep = 'relationship' | 'people' | 'shared-parent' | 'details' | 'success';
 type RelationshipChoice = 'parent' | 'sibling' | 'spouse' | 'child';
 type PersonPickerMode = 'change' | 'extended';
+type SelectedPerson = { id: string; name: string; avatarUrl: string | null };
 
 interface RelationshipOption {
   type: RelationshipChoice;
@@ -81,9 +83,13 @@ export default function AddMemberScreen() {
   const [loadingContext, setLoadingContext] = useState(true);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [relationships, setRelationships] = useState<Relationship[]>([]);
-  const [anchor, setAnchor] = useState<{ id: string; name: string } | null>(
+  const [anchor, setAnchor] = useState<SelectedPerson | null>(
     params.relativeId
-      ? { id: params.relativeId, name: params.relativeName || 'this family member' }
+      ? {
+          id: params.relativeId,
+          name: params.relativeName || 'this family member',
+          avatarUrl: null,
+        }
       : null
   );
   const [relation, setRelation] = useState<RelationshipChoice | null>(null);
@@ -119,11 +125,19 @@ export default function AddMemberScreen() {
         setRelationships(treeData.relationships);
 
         if (!params.relativeId && currentProfile) {
-          setAnchor({ id: currentProfile.id, name: currentProfile.full_name });
-        } else if (params.relativeId && !params.relativeName) {
+          setAnchor({
+            id: currentProfile.id,
+            name: currentProfile.full_name,
+            avatarUrl: currentProfile.avatar_url,
+          });
+        } else if (params.relativeId) {
           const selectedProfile = treeData.profiles.find((profile) => profile.id === params.relativeId);
           if (selectedProfile) {
-            setAnchor({ id: selectedProfile.id, name: selectedProfile.full_name });
+            setAnchor({
+              id: selectedProfile.id,
+              name: selectedProfile.full_name,
+              avatarUrl: selectedProfile.avatar_url,
+            });
           }
         }
       } catch (loadError: any) {
@@ -171,7 +185,11 @@ export default function AddMemberScreen() {
   };
 
   const choosePerson = (profile: Profile) => {
-    setAnchor({ id: profile.id, name: profile.full_name });
+    setAnchor({
+      id: profile.id,
+      name: profile.full_name,
+      avatarUrl: profile.avatar_url,
+    });
     setRelation(null);
     setSearch('');
     setStep('relationship');
@@ -303,10 +321,19 @@ export default function AddMemberScreen() {
 
   const renderAnchor = () => (
     <View className="mb-7 flex-row items-center rounded-[24px] border border-emerald-100 bg-emerald-50 px-4 py-4 dark:border-emerald-900 dark:bg-emerald-950/20">
-      <View className="mr-3 h-12 w-12 items-center justify-center rounded-full bg-white dark:bg-slate-900">
-        <Text className="text-lg font-bold text-[#064e3b] dark:text-emerald-400">
-          {anchor?.name?.[0]?.toUpperCase() || '?'}
-        </Text>
+      <View className="mr-3 h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-white dark:bg-slate-900">
+        {anchor?.avatarUrl ? (
+          <Image
+            source={{ uri: anchor.avatarUrl }}
+            className="h-full w-full"
+            resizeMode="cover"
+            accessibilityLabel={`${anchor.name}'s profile picture`}
+          />
+        ) : (
+          <Text className="text-lg font-bold text-[#064e3b] dark:text-emerald-400">
+            {anchor?.name?.[0]?.toUpperCase() || '?'}
+          </Text>
+        )}
       </View>
       <View className="flex-1">
         <Text className="text-sm text-emerald-700 dark:text-emerald-500">Related to</Text>
@@ -466,10 +493,19 @@ export default function AddMemberScreen() {
                     key={profile.id}
                     onPress={() => choosePerson(profile)}
                     className="min-h-[68px] flex-row items-center rounded-2xl bg-white px-4 dark:bg-slate-900">
-                    <View className="mr-3 h-11 w-11 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/30">
-                      <Text className="text-base font-bold text-emerald-700 dark:text-emerald-400">
-                        {profile.full_name[0]?.toUpperCase() || '?'}
-                      </Text>
+                    <View className="mr-3 h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-emerald-50 dark:bg-emerald-950/30">
+                      {profile.avatar_url ? (
+                        <Image
+                          source={{ uri: profile.avatar_url }}
+                          className="h-full w-full"
+                          resizeMode="cover"
+                          accessibilityLabel={`${profile.full_name}'s profile picture`}
+                        />
+                      ) : (
+                        <Text className="text-base font-bold text-emerald-700 dark:text-emerald-400">
+                          {profile.full_name[0]?.toUpperCase() || '?'}
+                        </Text>
+                      )}
                     </View>
                     <Text className="flex-1 text-[17px] font-semibold text-gray-900 dark:text-white">
                       {profile.full_name}

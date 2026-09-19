@@ -11,7 +11,8 @@
       "tsconfigPaths": true
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "expo-web-browser"
     ],
     "orientation": "portrait",
     "icon": "./assets/pkg.png",
@@ -25,7 +26,8 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": false,
+      "bundleIdentifier": "com.kingwillyo.lineagex"
     },
     "android": {
       "adaptiveIcon": {

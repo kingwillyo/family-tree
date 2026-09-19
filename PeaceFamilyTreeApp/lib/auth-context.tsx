@@ -1,6 +1,10 @@
 import { Session, User } from '@supabase/supabase-js';
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { makeRedirectUri } from 'expo-auth-session';
+import * as WebBrowser from 'expo-web-browser';
 import { supabase } from './supabase';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export type Role = 'admin' | 'editor' | 'viewer';
 
@@ -16,11 +20,20 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<{ error: any } | void>;
   signInWithOtp: (email: string) => Promise<{ error: any } | void>;
   verifyOtp: (email: string, token: string) => Promise<{ error: any } | void>;
+  signInWithGoogle: () => Promise<{ error?: Error; cancelled?: boolean } | void>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+function getOAuthCallbackParams(url: string) {
+  const parsedUrl = new URL(url);
+  const params = new URLSearchParams(parsedUrl.search);
+  const hashParams = new URLSearchParams(parsedUrl.hash.replace(/^#/, ''));
+  hashParams.forEach((value, key) => params.set(key, value));
+  return params;
+}
 
 async function fetchRoleAndProfileInfo(userId: string): Promise<{ role: Role; hasProfile: boolean; familyId: string | null }> {
   let role: Role = 'viewer';
@@ -160,6 +173,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const signInWithGoogle = async () => {
+    setLoading(true);
+    try {
+      const redirectTo = makeRedirectUri({
+        scheme: 'lineagex',
+        path: 'auth/callback',
+      });
+      const { data: oauthData, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+          queryParams: {
+            prompt: 'select_account',
+          },
+        },
+      });
+
+      if (oauthError) return { error: oauthError };
+      if (!oauthData.url) return { error: new Error('Google sign-in could not be started.') };
+
+      const browserResult = await WebBrowser.openAuthSessionAsync(oauthData.url, redirectTo);
+      if (browserResult.type === 'cancel' || browserResult.type === 'dismiss') {
+        return { cancelled: true };
+      }
+      if (browserResult.type !== 'success') {
+        return { error: new Error('Google sign-in did not complete. Please try again.') };
+      }
+
+      const params = getOAuthCallbackParams(browserResult.url);
+      const callbackError = params.get('error_description') || params.get('error');
+      if (callbackError) return { error: new Error(callbackError) };
+
+      const authorizationCode = params.get('code');
+      if (authorizationCode) {
+        const { data, error } = await supabase.auth.exchangeCodeForSession(authorizationCode);
+        if (error) return { error };
+        await applySession(data.session);
+        return;
+      }
+
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      if (!accessToken || !refreshToken) {
+        return { error: new Error('Google did not return a valid session. Please try again.') };
+      }
+
+      const { data, error } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: refreshToken,
+      });
+      if (error) return { error };
+      await applySession(data.session);
+    } catch (error: any) {
+      return { error: error instanceof Error ? error : new Error('Google sign-in failed.') };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const signOut = async () => {
     setLoading(true);
     try {
@@ -185,7 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ session, user, role, hasProfile, familyId, loading, appLoading, signIn, signUp, signInWithOtp, verifyOtp, signOut, refreshProfile }}>
+      value={{ session, user, role, hasProfile, familyId, loading, appLoading, signIn, signUp, signInWithOtp, verifyOtp, signInWithGoogle, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );
