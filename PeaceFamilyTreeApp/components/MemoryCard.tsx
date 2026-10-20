@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
+import { OptimizedImage as Image } from './OptimizedImage';
 
 export interface MemoryData {
   id: string;
   type: string;
+  createdBy?: string | null;
   author: {
     name: string;
     avatar?: string;
@@ -27,10 +29,11 @@ export interface MemoryData {
 interface MemoryCardProps {
   memory: MemoryData;
   onPress?: () => void;
+  onEdit?: () => void;
   isFullView?: boolean;
 }
 
-export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardProps) {
+export default function MemoryCard({ memory, onPress, onEdit, isFullView }: MemoryCardProps) {
   // Array of heights for the audio visualizer mock
   const visualizerBars = [
     12, 16, 24, 18, 14, 28, 38, 33, 20, 16, 12, 22, 18, 14, 24, 20, 12, 15, 25, 18, 12,
@@ -69,9 +72,13 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
           </Text>
         </View>
       </View>
-      {!isFullView && !isBottom && (
-        <TouchableOpacity>
-          <Feather name="more-horizontal" size={20} color="#9ca3af" />
+      {!isFullView && !isBottom && onEdit && (
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="Edit memory"
+          onPress={onEdit}
+          className="h-9 w-9 items-center justify-center rounded-full bg-gray-50 dark:bg-slate-800">
+          <Feather name="edit-2" size={16} color="#059669" />
         </TouchableOpacity>
       )}
     </View>
@@ -193,11 +200,11 @@ export default function MemoryCard({ memory, onPress, isFullView }: MemoryCardPr
 
           <LocationDateInfo />
 
-          {!isFullView && (
+          {!isFullView && memory.content.title ? (
             <Text className="mb-3 text-[18px] font-bold leading-6 text-gray-900 dark:text-white">
               {memory.content.title}
             </Text>
-          )}
+          ) : null}
 
           {/* Tags */}
           <View className="flex-row flex-wrap gap-2">

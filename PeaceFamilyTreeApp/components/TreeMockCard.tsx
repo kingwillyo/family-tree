@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { FontAwesome, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { OptimizedImage as Image } from './OptimizedImage';
 
 type CardVariant = 'parent' | 'main' | 'child' | 'add-child' | 'add-spouse' | 'add-parent';
 
@@ -64,10 +65,16 @@ export function TreeMockCard({
         className="w-[280px] items-center rounded-[32px] border border-gray-100 bg-white p-6"
         style={styles.shadow}>
         <View className="relative mb-5">
-          <Image
-            source={{ uri: imageUrl || 'https://via.placeholder.com/150' }}
-            className="h-[120px] w-[120px] rounded-full border-4 border-[#2b4030]"
-          />
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              className="h-[120px] w-[120px] rounded-full border-4 border-[#2b4030]"
+            />
+          ) : (
+            <View className="h-[120px] w-[120px] items-center justify-center rounded-full border-4 border-[#2b4030] bg-gray-100">
+              <Feather name="user" size={42} color="#9ca3af" />
+            </View>
+          )}
           {admin && (
             <View className="absolute bottom-1 right-1 h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-[#3cd52e]">
               <FontAwesome name="star" size={14} color="white" />
@@ -99,10 +106,13 @@ export function TreeMockCard({
       className="w-40 items-center rounded-[24px] border border-gray-50 bg-white p-5"
       style={styles.shadow}>
       <View className="relative mb-4">
-        <Image
-          source={{ uri: imageUrl || 'https://via.placeholder.com/100' }}
-          className="h-[72px] w-[72px] rounded-full"
-        />
+        {imageUrl ? (
+          <Image source={{ uri: imageUrl }} className="h-[72px] w-[72px] rounded-full" />
+        ) : (
+          <View className="h-[72px] w-[72px] items-center justify-center rounded-full bg-gray-100">
+            <Feather name="user" size={28} color="#9ca3af" />
+          </View>
+        )}
         {admin && (
           <View className="absolute bottom-0 right-0 h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[#3cd52e]">
             <FontAwesome name="star" size={10} color="white" />

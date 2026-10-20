@@ -617,7 +617,11 @@ export async function uploadMemberMedia(
 
     const { error: uploadError } = await supabase.storage
       .from('member-media')
-      .upload(path, bytes, { contentType: mimeType, upsert: false });
+      .upload(path, bytes, {
+        contentType: mimeType,
+        cacheControl: '31536000',
+        upsert: false,
+      });
     if (uploadError) return { error: uploadError.message };
 
     const { data: urlData } = supabase.storage.from('member-media').getPublicUrl(path);
@@ -659,16 +663,21 @@ export async function uploadAvatar(
 
     const { error: uploadError } = await supabase.storage
       .from('member-avatars')
-      .upload(path, bytes, { contentType: mimeType, upsert: true });
+      .upload(path, bytes, {
+        contentType: mimeType,
+        cacheControl: '31536000',
+        upsert: true,
+      });
     if (uploadError) return { error: uploadError.message };
 
     const { data: urlData } = supabase.storage.from('member-avatars').getPublicUrl(path);
-    // Append a cache-buster so the image view refreshes
+    // Keep a versioned URL in the database so every client can cache avatars
+    // aggressively without showing a stale image after an update.
     const publicUrl = `${urlData.publicUrl}?t=${Date.now()}`;
 
     const { error: dbError } = await supabase
       .from('profiles')
-      .update({ avatar_url: urlData.publicUrl })
+      .update({ avatar_url: publicUrl })
       .eq('id', profileId);
     if (dbError) return { error: dbError.message };
 
@@ -904,8 +913,27 @@ export async function updateProposalStatus(
 // ─────────────────────────────────────────────
 
 export async function deleteProfile(profileId: string): Promise<{ error?: string }> {
-  const { error } = await supabase.from('profiles').delete().eq('id', profileId);
-  return error ? { error: error.message } : {};
+  const { error } = await supabase.rpc('delete_family_profile', {
+    p_profile_id: profileId,
+  });
+
+  if (error) return { error: error.message };
+
+  // Avatar objects are not database rows, so clean them up after the secure
+  // database operation succeeds. Memories and their media remain preserved.
+  const { data: avatarFiles, error: listError } = await supabase.storage
+    .from('member-avatars')
+    .list(profileId);
+
+  if (!listError && avatarFiles?.length) {
+    const paths = avatarFiles.map((file) => `${profileId}/${file.name}`);
+    const { error: cleanupError } = await supabase.storage.from('member-avatars').remove(paths);
+    if (cleanupError) {
+      console.warn('Profile deleted, but avatar cleanup failed:', cleanupError.message);
+    }
+  }
+
+  return {};
 }
 
 // ─────────────────────────────────────────────

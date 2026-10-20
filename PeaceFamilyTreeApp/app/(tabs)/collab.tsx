@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, Image, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
+import { OptimizedImage as Image } from '../../components/OptimizedImage';
 import { 
   fetchProposals, 
   fetchCurrentProfile, 
@@ -256,4 +257,3 @@ export default function CollabScreen() {
     </SafeAreaView>
   );
 }
-

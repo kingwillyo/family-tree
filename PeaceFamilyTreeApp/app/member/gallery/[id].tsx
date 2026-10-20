@@ -1,74 +1,91 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Dimensions,
   FlatList,
-  Image,
-  Modal,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import { OptimizedImage as Image } from '../../../components/OptimizedImage';
+import { GalleryPhoto, GalleryViewer } from '../../../components/GalleryViewer';
 
 import { Memory, fetchMemberMedia, fetchProfileById, Profile } from '../../../lib/treeService';
+import { useAuth } from '../../../lib/auth-context';
 
-const { width } = Dimensions.get('window');
-
-interface ImagePreviewModalProps {
-  visible: boolean;
-  imageUrl: string | null;
-  onClose: () => void;
-}
-
-function ImagePreviewModal({ visible, imageUrl, onClose }: ImagePreviewModalProps) {
-  if (!imageUrl) return null;
-  return (
-    <Modal visible={visible} transparent animationType="fade">
-      <View className="flex-1 bg-black/90 items-center justify-center">
-        <TouchableOpacity 
-          onPress={onClose}
-          className="absolute top-12 right-6 z-20 h-10 w-10 items-center justify-center rounded-full bg-white/20">
-          <Feather name="x" size={24} color="white" />
-        </TouchableOpacity>
-        <Image 
-          source={{ uri: imageUrl }} 
-          className="w-full h-3/4" 
-          resizeMode="contain"
-        />
-      </View>
-    </Modal>
-  );
-}
+type GridItem =
+  | { id: string; type: 'audio'; memory: Memory }
+  | { id: string; type: 'photo'; memory: Memory; photo: GalleryPhoto; photoIndex: number };
 
 export default function MemberGalleryScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { user } = useAuth();
+  const { width } = useWindowDimensions();
 
   const [profile, setProfile] = useState<Profile | null>(null);
   const [media, setMedia] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
-  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState(0);
 
   const loadData = useCallback(async () => {
     if (!id) return;
     setLoading(true);
-    const [p, m] = await Promise.all([
-      fetchProfileById(id),
-      fetchMemberMedia(id),
-    ]);
+    const [p, m] = await Promise.all([fetchProfileById(id), fetchMemberMedia(id)]);
     setProfile(p);
     setMedia(m);
     setLoading(false);
   }, [id]);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [loadData])
+  );
+
+  const { photos, gridItems } = useMemo(() => {
+    const nextPhotos: GalleryPhoto[] = [];
+    const nextGridItems: GridItem[] = [];
+
+    media.forEach((memory) => {
+      if (memory.type === 'audio') {
+        nextGridItems.push({ id: `audio-${memory.id}`, type: 'audio', memory });
+        return;
+      }
+
+      memory.image_urls?.forEach((uri, imageIndex) => {
+        if (!uri) return;
+
+        const photo: GalleryPhoto = {
+          id: `${memory.id}-${imageIndex}`,
+          uri,
+          title: memory.title,
+          location: memory.location,
+          createdAt: memory.created_at,
+          canEdit: memory.created_by === user?.id,
+        };
+        const photoIndex = nextPhotos.length;
+        nextPhotos.push(photo);
+        nextGridItems.push({
+          id: `photo-${photo.id}`,
+          type: 'photo',
+          memory,
+          photo,
+          photoIndex,
+        });
+      });
+    });
+
+    return { photos: nextPhotos, gridItems: nextGridItems };
+  }, [media, user?.id]);
 
   const itemSize = (width - 48 - 16) / 3;
 
-  const renderItem = ({ item }: { item: Memory }) => {
+  const renderItem = ({ item }: { item: GridItem }) => {
     if (item.type === 'audio') {
       return (
         <View
@@ -84,17 +101,31 @@ export default function MemberGalleryScreen() {
       );
     }
 
-    const imageUrl = item.image_urls?.[0];
-    if (!imageUrl) return null;
-
     return (
-      <TouchableOpacity
-        onPress={() => setPreviewImage(imageUrl)}
-        activeOpacity={0.9}
+      <View
         style={{ width: itemSize, height: itemSize, margin: 4 }}
         className="overflow-hidden rounded-[24px] bg-gray-200">
-        <Image source={{ uri: imageUrl }} className="h-full w-full" resizeMode="cover" />
-      </TouchableOpacity>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={`Open photo ${item.photoIndex + 1} of ${photos.length}`}
+          onPress={() => {
+            setViewerIndex(item.photoIndex);
+            setViewerVisible(true);
+          }}
+          activeOpacity={0.9}
+          className="h-full w-full">
+          <Image source={{ uri: item.photo.uri }} className="h-full w-full" contentFit="cover" />
+        </TouchableOpacity>
+        {item.photo.canEdit ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Edit memory"
+            onPress={() => router.push(`/memory/edit/${item.memory.id}` as any)}
+            className="absolute right-2 top-2 h-8 w-8 items-center justify-center rounded-full bg-black/60">
+            <Feather name="edit-2" size={14} color="white" />
+          </TouchableOpacity>
+        ) : null}
+      </View>
     );
   };
 
@@ -119,10 +150,13 @@ export default function MemberGalleryScreen() {
         </View>
       ) : (
         <FlatList
-          data={media}
+          data={gridItems}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           numColumns={3}
+          initialNumToRender={12}
+          maxToRenderPerBatch={9}
+          windowSize={5}
           contentContainerStyle={{ padding: 20 }}
           ListEmptyComponent={
             <View className="items-center py-20">
@@ -132,11 +166,20 @@ export default function MemberGalleryScreen() {
         />
       )}
 
-      {/* Image Preview Modal */}
-      <ImagePreviewModal 
-        visible={!!previewImage} 
-        imageUrl={previewImage} 
-        onClose={() => setPreviewImage(null)} 
+      <GalleryViewer
+        visible={viewerVisible}
+        photos={photos}
+        initialIndex={viewerIndex}
+        ownerName={profile?.full_name}
+        onClose={() => setViewerVisible(false)}
+        onEdit={(photo) => {
+          const selectedItem = gridItems.find(
+            (item) => item.type === 'photo' && item.photo.id === photo.id
+          );
+          if (!selectedItem || selectedItem.type !== 'photo') return;
+          setViewerVisible(false);
+          router.push(`/memory/edit/${selectedItem.memory.id}` as any);
+        }}
       />
     </SafeAreaView>
   );

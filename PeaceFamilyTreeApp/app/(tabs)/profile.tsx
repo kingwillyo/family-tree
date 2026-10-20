@@ -4,7 +4,6 @@ import {
   Alert,
   Animated,
   Dimensions,
-  Image,
   Modal,
   ScrollView,
   Text,
@@ -14,8 +13,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useColorScheme } from 'nativewind';
+import { OptimizedImage as Image } from '../../components/OptimizedImage';
 
 import { useAuth } from '../../lib/auth-context';
 import { supabase } from '../../lib/supabase';
@@ -36,6 +35,7 @@ import {
   createProposal,
 } from '../../lib/treeService';
 import { Button } from '../../components/Button';
+import { showImageSourcePicker } from '../../lib/imagePicker';
 
 const { width } = Dimensions.get('window');
 
@@ -182,75 +182,63 @@ export default function TabProfileScreen() {
   useEffect(() => { loadData(); }, [loadData]);
 
   // ── Avatar upload ────────────────────────────────────────────────────────
-  const handleAvatarPress = async () => {
+  const handleAvatarPress = () => {
     if (!user || !profileId || !profile) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission required', 'Please allow access to your photo library.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (result.canceled || !result.assets?.[0]?.uri) return;
-    setAvatarUploading(true);
-
-    // If Admin or Own Profile, upload directly (uploadAvatar currently does DB update too)
-    if (isAdmin || isOwnProfile) {
-      const res = await uploadAvatar(result.assets[0].uri, user.id, profileId);
-      if ('error' in res) {
-        Alert.alert('Upload failed', res.error);
-      } else {
-        setProfile((prev) => prev ? { ...prev, avatar_url: res.url } : prev);
+    showImageSourcePicker(
+      { title: 'Change profile photo', allowsEditing: true, aspect: [1, 1], quality: 0.8 },
+      async ([uri]) => {
+        if (!uri) return;
+        setAvatarUploading(true);
+        try {
+          // If Admin or Own Profile, upload directly (uploadAvatar currently updates the DB too)
+          if (isAdmin || isOwnProfile) {
+            const res = await uploadAvatar(uri, user.id, profileId);
+            if ('error' in res) {
+              Alert.alert('Upload failed', res.error);
+            } else {
+              setProfile((prev) => (prev ? { ...prev, avatar_url: res.url } : prev));
+            }
+          } else {
+            Alert.alert(
+              'Admin Only',
+              'Profile photo updates are currently restricted to administrators.'
+            );
+          }
+        } finally {
+          setAvatarUploading(false);
+        }
       }
-    } 
-    // If Member, we'd need to upload just the storage file then propose. 
-    // For now, let's keep it simple: inform the user.
-    else {
-      // NOTE: uploadAvatar in treeService MUST be refactored if we want members to propose avatars
-      // because it currently updates the profiles table directly.
-      Alert.alert('Admin Only', 'Profile photo updates are currently restricted to administrators.');
-    }
-    setAvatarUploading(false);
+    );
   };
 
   // ── Gallery upload ───────────────────────────────────────────────────────
-  const handleMediaAdd = async () => {
+  const handleMediaAdd = () => {
     if (!user || !profileId) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission required', 'Please allow access to your photo library.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.8,
+    showImageSourcePicker({ title: 'Add gallery photo', quality: 0.8 }, async ([uri]) => {
+      if (!uri) return;
+      setMediaUploading(true);
+      try {
+        const res = await uploadMemberMedia(uri, user.id, profileId);
+        if ('error' in res) {
+          Alert.alert('Upload failed', res.error);
+        } else {
+          setMedia((prev) => [{
+            id: Date.now().toString(),
+            author_profile_id: profileId,
+            created_by: user.id,
+            type: 'photo',
+            title: null,
+            body: null,
+            location: null,
+            image_urls: [res.url],
+            audio_url: null,
+            created_at: new Date().toISOString(),
+          }, ...prev]);
+        }
+      } finally {
+        setMediaUploading(false);
+      }
     });
-    if (result.canceled || !result.assets?.[0]?.uri) return;
-    setMediaUploading(true);
-    const res = await uploadMemberMedia(result.assets[0].uri, user.id, profileId);
-    if ('error' in res) {
-      Alert.alert('Upload failed', res.error);
-    } else {
-      setMedia((prev) => [{
-        id: Date.now().toString(),
-        author_profile_id: profileId,
-        created_by: user.id,
-        type: 'photo',
-        title: null,
-        body: null,
-        location: null,
-        image_urls: [res.url],
-        audio_url: null,
-        created_at: new Date().toISOString(),
-      }, ...prev]);
-    }
-    setMediaUploading(false);
   };
 
   const handleDeleteTimelineEvent = async (event: TimelineEvent) => {
@@ -363,10 +351,11 @@ export default function TabProfileScreen() {
               )}
             </View>
             <TouchableOpacity
-              onPress={() => router.push(`/member/edit/${profileId}`)}
+              onPress={handleAvatarPress}
               activeOpacity={0.7}
+              disabled={avatarUploading}
               className="absolute -bottom-1 -right-1 h-12 w-12 items-center justify-center rounded-full border-4 border-[#fcFAF8] dark:border-slate-950 bg-[#8cc63f]">
-              <Feather name="edit-2" size={16} color="white" />
+              <Feather name="camera" size={16} color="white" />
             </TouchableOpacity>
           </View>
 
@@ -607,4 +596,3 @@ export default function TabProfileScreen() {
     </SafeAreaView>
   );
 }
-

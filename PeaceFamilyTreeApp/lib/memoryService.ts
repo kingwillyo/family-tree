@@ -10,10 +10,12 @@ export interface CreateMemoryInput {
   title?: string;
   body?: string;
   location?: string;
-  imageUris?: string[];   // local file URIs — will be uploaded
-  audioUri?: string;      // local file URI or 'mock_audio'
+  imageUris?: string[]; // local file URIs — will be uploaded
+  audioUri?: string; // local file URI or 'mock_audio'
   authorProfileId?: string;
 }
+
+export type UpdateMemoryInput = Omit<CreateMemoryInput, 'authorProfileId'>;
 
 export interface Memory {
   id: string;
@@ -44,7 +46,8 @@ export async function uploadMemoryImage(localUri: string, userId: string): Promi
   const mimeType = ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/jpeg';
 
   // Build a unique storage path: {userId}/{timestamp}.{ext}
-  const path = `${userId}/${Date.now()}.${ext}`;
+  const uniqueSuffix = Math.random().toString(36).slice(2, 10);
+  const path = `${userId}/${Date.now()}-${uniqueSuffix}.${ext}`;
 
   // Convert base64 string to Uint8Array for upload
   const binaryString = atob(base64);
@@ -53,9 +56,11 @@ export async function uploadMemoryImage(localUri: string, userId: string): Promi
     bytes[i] = binaryString.charCodeAt(i);
   }
 
-  const { error: uploadError } = await supabase.storage
-    .from('memory-images')
-    .upload(path, bytes, { contentType: mimeType, upsert: false });
+  const { error: uploadError } = await supabase.storage.from('memory-images').upload(path, bytes, {
+    contentType: mimeType,
+    cacheControl: '31536000',
+    upsert: false,
+  });
 
   if (uploadError) {
     throw new Error(`Image upload failed: ${uploadError.message}`);
@@ -79,9 +84,7 @@ export async function createMemory(
     // Upload photos if present
     let imageUrls: string[] = [];
     if (input.imageUris && input.imageUris.length > 0) {
-      imageUrls = await Promise.all(
-        input.imageUris.map((uri) => uploadMemoryImage(uri, userId))
-      );
+      imageUrls = await Promise.all(input.imageUris.map((uri) => uploadMemoryImage(uri, userId)));
     }
 
     const { data, error } = await supabase
@@ -127,8 +130,177 @@ export async function fetchMemories(): Promise<Memory[]> {
   return data ?? [];
 }
 
+export async function fetchMemoryById(memoryId: string): Promise<Memory | null> {
+  const { data, error } = await supabase
+    .from('memories')
+    .select('*')
+    .eq('id', memoryId)
+    .maybeSingle();
+
+  if (error) {
+    console.error('fetchMemoryById error:', error.message);
+    return null;
+  }
+
+  return data as Memory | null;
+}
+
+interface StoredImagePath {
+  bucket: 'memory-images' | 'member-media';
+  path: string;
+}
+
+function getOwnedImagePath(
+  url: string,
+  userId: string,
+  authorProfileId: string | null
+): StoredImagePath | null {
+  const candidates: { bucket: StoredImagePath['bucket']; ownerPrefix: string }[] = [
+    { bucket: 'memory-images', ownerPrefix: userId },
+  ];
+  if (authorProfileId) {
+    candidates.push({ bucket: 'member-media', ownerPrefix: authorProfileId });
+  }
+
+  for (const candidate of candidates) {
+    const marker = `/storage/v1/object/public/${candidate.bucket}/`;
+    const markerIndex = url.indexOf(marker);
+    if (markerIndex < 0) continue;
+
+    const encodedPath = url.slice(markerIndex + marker.length).split('?')[0];
+    const path = decodeURIComponent(encodedPath);
+    if (path.startsWith(`${candidate.ownerPrefix}/`)) {
+      return { bucket: candidate.bucket, path };
+    }
+  }
+
+  return null;
+}
+
+export async function updateMemory(
+  memoryId: string,
+  input: UpdateMemoryInput,
+  userId: string
+): Promise<{ id: string } | { error: string }> {
+  try {
+    const { data: existing, error: fetchError } = await supabase
+      .from('memories')
+      .select('id, created_by, author_profile_id, image_urls')
+      .eq('id', memoryId)
+      .maybeSingle();
+
+    if (fetchError) return { error: fetchError.message };
+    if (!existing) return { error: 'Memory not found.' };
+    if (existing.created_by !== userId) {
+      return { error: 'Only the person who posted this memory can edit it.' };
+    }
+
+    const requestedImages = input.type === 'photo' ? (input.imageUris ?? []) : [];
+    const existingImages: string[] = Array.isArray(existing.image_urls) ? existing.image_urls : [];
+    const existingImageSet = new Set(existingImages);
+    const keptImages = requestedImages.filter((uri) => existingImageSet.has(uri));
+    const newLocalImages = requestedImages.filter(
+      (uri) => !existingImageSet.has(uri) && !/^https?:\/\//i.test(uri)
+    );
+    const uploadedImages = await Promise.all(
+      newLocalImages.map((uri) => uploadMemoryImage(uri, userId))
+    );
+    const finalImages = [...keptImages, ...uploadedImages];
+
+    const { data, error } = await supabase
+      .from('memories')
+      .update({
+        type: input.type,
+        title: input.title || null,
+        body: input.type === 'story' ? input.body || null : null,
+        location: input.location || null,
+        image_urls: finalImages,
+        audio_url:
+          input.type === 'audio' && input.audioUri && input.audioUri !== 'mock_audio'
+            ? input.audioUri
+            : null,
+      })
+      .eq('id', memoryId)
+      .eq('created_by', userId)
+      .select('id')
+      .single();
+
+    if (error || !data) return { error: error?.message ?? 'Failed to update memory.' };
+
+    const removedImages = existingImages
+      .filter((url) => !finalImages.includes(url))
+      .map((url) => getOwnedImagePath(url, userId, existing.author_profile_id))
+      .filter((image): image is StoredImagePath => Boolean(image));
+
+    for (const bucket of ['memory-images', 'member-media'] as const) {
+      const paths = removedImages
+        .filter((image) => image.bucket === bucket)
+        .map((image) => image.path);
+      if (paths.length > 0) {
+        const { error: cleanupError } = await supabase.storage.from(bucket).remove(paths);
+        if (cleanupError) {
+          console.warn('Memory updated, but removed image cleanup failed:', cleanupError.message);
+        }
+      }
+    }
+
+    return { id: data.id };
+  } catch (error: any) {
+    return { error: error?.message ?? 'Unexpected error' };
+  }
+}
+
+export async function deleteMemory(memoryId: string, userId: string): Promise<{ error?: string }> {
+  try {
+    const { data: existing, error: fetchError } = await supabase
+      .from('memories')
+      .select('id, created_by, author_profile_id, image_urls')
+      .eq('id', memoryId)
+      .maybeSingle();
+
+    if (fetchError) return { error: fetchError.message };
+    if (!existing) return { error: 'Memory not found.' };
+    if (existing.created_by !== userId) {
+      return { error: 'Only the person who posted this memory can delete it.' };
+    }
+
+    const { data: deleted, error: deleteError } = await supabase
+      .from('memories')
+      .delete()
+      .eq('id', memoryId)
+      .eq('created_by', userId)
+      .select('id')
+      .maybeSingle();
+
+    if (deleteError) return { error: deleteError.message };
+    if (!deleted) return { error: 'Memory could not be deleted.' };
+
+    const storedImages = (Array.isArray(existing.image_urls) ? existing.image_urls : [])
+      .map((url) => getOwnedImagePath(url, userId, existing.author_profile_id))
+      .filter((image): image is StoredImagePath => Boolean(image));
+
+    for (const bucket of ['memory-images', 'member-media'] as const) {
+      const paths = [
+        ...new Set(
+          storedImages.filter((image) => image.bucket === bucket).map((image) => image.path)
+        ),
+      ];
+      if (paths.length === 0) continue;
+
+      const { error: cleanupError } = await supabase.storage.from(bucket).remove(paths);
+      if (cleanupError) {
+        console.warn('Memory deleted, but media cleanup failed:', cleanupError.message);
+      }
+    }
+
+    return {};
+  } catch (error: any) {
+    return { error: error?.message ?? 'Unexpected error' };
+  }
+}
+
 // ─────────────────────────────────────────────
-// 4. Fetch memories joined with author profile
+// 5. Fetch memories joined with author profile
 //    Returns enriched rows ready for the feed
 // ─────────────────────────────────────────────
 
@@ -142,13 +314,15 @@ export interface MemoryWithProfile extends Memory {
 export async function fetchMemoriesWithProfiles(): Promise<MemoryWithProfile[]> {
   const { data, error } = await supabase
     .from('memories')
-    .select(`
+    .select(
+      `
       *,
       profile:profiles!author_profile_id (
         full_name,
         avatar_url
       )
-    `)
+    `
+    )
     .order('created_at', { ascending: false });
 
   if (error) {

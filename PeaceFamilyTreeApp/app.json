@@ -12,13 +12,25 @@
     },
     "plugins": [
       "expo-router",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow LineageX to add photos to family memories.",
+          "cameraPermission": "Allow LineageX to take photos for family memories.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "orientation": "portrait",
-    "icon": "./assets/pkg.png",
+      "icon": {
+        "light": "./assets/ios-light.png",
+        "dark": "./assets/ios-dark.png",
+        "tinted": "./assets/ios-tinted.png"
+      },
     "userInterfaceStyle": "automatic",
     "splash": {
-      "image": "./assets/file.png",
+      "image": "./assets/splash-icon-dark.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -33,7 +45,8 @@
       "adaptiveIcon": {
         "foregroundImage": "./assets/pkg.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.kingwillyo.lineagex"
     }
   }
 }

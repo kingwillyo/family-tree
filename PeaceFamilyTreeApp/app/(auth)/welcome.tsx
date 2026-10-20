@@ -3,7 +3,6 @@ import React, { useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
-  Image,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -12,6 +11,7 @@ import {
   ViewToken,
 } from 'react-native';
 import { Button } from '../../components/Button';
+import { OptimizedImage as Image } from '../../components/OptimizedImage';
 
 const { width } = Dimensions.get('window');
 

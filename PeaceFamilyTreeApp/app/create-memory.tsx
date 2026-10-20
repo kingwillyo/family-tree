@@ -7,23 +7,27 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image,
   Modal,
   Dimensions,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useAuth } from '../lib/auth-context';
-import { createMemory } from '../lib/memoryService';
+import { createMemory, deleteMemory, fetchMemoryById, updateMemory } from '../lib/memoryService';
 import { fetchCurrentUserProfile, Profile } from '../lib/treeService';
+import { OptimizedImage as Image } from '../components/OptimizedImage';
+import { showImageSourcePicker } from '../lib/imagePicker';
 
 export default function CreateMemoryScreen() {
   const router = useRouter();
+  const { memoryId, id } = useLocalSearchParams<{ memoryId?: string; id?: string }>();
+  const editingMemoryId = id ?? memoryId;
   const { user } = useAuth();
+  const isEditing = Boolean(editingMemoryId);
   const [title, setTitle] = useState('');
   const [memory, setMemory] = useState('');
   const [activeType, setActiveType] = useState<'story' | 'photo' | 'audio'>('story');
@@ -35,6 +39,8 @@ export default function CreateMemoryScreen() {
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [manualLocation, setManualLocation] = useState('');
   const [isPosting, setIsPosting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isLoadingMemory, setIsLoadingMemory] = useState(Boolean(editingMemoryId));
   const [profile, setProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
@@ -45,28 +51,55 @@ export default function CreateMemoryScreen() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!editingMemoryId || !user) return;
+
+    let isActive = true;
+    const loadMemory = async () => {
+      setIsLoadingMemory(true);
+      const existingMemory = await fetchMemoryById(editingMemoryId);
+      if (!isActive) return;
+
+      if (!existingMemory || existingMemory.created_by !== user.id) {
+        setIsLoadingMemory(false);
+        Alert.alert(
+          'Cannot edit memory',
+          existingMemory
+            ? 'Only the person who posted this memory can edit it.'
+            : 'This memory could not be found.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+        return;
+      }
+
+      setTitle(existingMemory.title ?? '');
+      setMemory(existingMemory.body ?? '');
+      setActiveType(existingMemory.type);
+      setLocation(existingMemory.location);
+      setMediaUris(existingMemory.image_urls ?? []);
+      setMediaUri(existingMemory.audio_url);
+      setIsLoadingMemory(false);
+    };
+
+    loadMemory();
+    return () => {
+      isActive = false;
+    };
+  }, [editingMemoryId, router, user]);
+
   const isPostEnabled =
-    !isPosting && !!(title.trim() || memory.trim() || mediaUri || mediaUris.length > 0 || location);
+    !isPosting &&
+    !isDeleting &&
+    !!(title.trim() || memory.trim() || mediaUri || mediaUris.length > 0 || location);
 
-  const handlePhotoUpload = async () => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+  const addPhotoUris = (uris: string[]) => {
+    if (uris.length === 0) return;
+    setActiveType('photo');
+    setMediaUris((previous) => [...new Set([...previous, ...uris])]);
+  };
 
-    if (permissionResult.granted === false) {
-      alert("You've refused to allow this app to access your photos!");
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsMultipleSelection: true,
-      quality: 1,
-    });
-
-    if (!result.canceled) {
-      setActiveType('photo');
-      const newUris = result.assets.map((asset) => asset.uri);
-      setMediaUris((prev) => [...prev, ...newUris]);
-    }
+  const handlePhotoUpload = () => {
+    showImageSourcePicker({ title: 'Add photos', multiple: true }, addPhotoUris);
   };
 
   const removeImage = (indexToRemove: number) => {
@@ -117,7 +150,7 @@ export default function CreateMemoryScreen() {
         setLocation('Current Location');
       }
       setLocationModalVisible(false);
-    } catch (error) {
+    } catch {
       alert('Error fetching location');
     } finally {
       setIsFetchingLocation(false);
@@ -139,21 +172,27 @@ export default function CreateMemoryScreen() {
     }
     setIsPosting(true);
     try {
-      const result = await createMemory(
-        {
-          type: activeType,
-          title: title.trim() || undefined,
-          body: activeType === 'story' ? memory.trim() || undefined : undefined,
-          location: location ?? undefined,
-          imageUris: activeType === 'photo' ? mediaUris : [],
-          audioUri: activeType === 'audio' ? mediaUri ?? undefined : undefined,
-          authorProfileId: profile?.id ?? undefined,
-        },
-        user.id
-      );
+      const input = {
+        type: activeType,
+        title: title.trim() || undefined,
+        body: activeType === 'story' ? memory.trim() || undefined : undefined,
+        location: location ?? undefined,
+        imageUris: activeType === 'photo' ? mediaUris : [],
+        audioUri: activeType === 'audio' ? (mediaUri ?? undefined) : undefined,
+      };
+      const result =
+        isEditing && editingMemoryId
+          ? await updateMemory(editingMemoryId, input, user.id)
+          : await createMemory(
+              {
+                ...input,
+                authorProfileId: profile?.id ?? undefined,
+              },
+              user.id
+            );
 
       if ('error' in result) {
-        alert(`Failed to post: ${result.error}`);
+        Alert.alert(isEditing ? 'Update failed' : 'Post failed', result.error);
       } else {
         router.back();
       }
@@ -161,6 +200,44 @@ export default function CreateMemoryScreen() {
       setIsPosting(false);
     }
   };
+
+  const handleDelete = () => {
+    if (!editingMemoryId || !user || isDeleting) return;
+
+    Alert.alert(
+      'Delete memory?',
+      'This memory and its uploaded photos will be permanently deleted. This cannot be undone.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setIsDeleting(true);
+            const result = await deleteMemory(editingMemoryId, user.id);
+
+            if (result.error) {
+              setIsDeleting(false);
+              Alert.alert('Delete failed', result.error);
+              return;
+            }
+
+            setIsDeleting(false);
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  if (isLoadingMemory) {
+    return (
+      <SafeAreaView className="flex-1 items-center justify-center bg-white">
+        <ActivityIndicator size="large" color="#84cc16" />
+        <Text className="mt-3 text-sm font-medium text-gray-400">Loading memory...</Text>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
@@ -251,7 +328,9 @@ export default function CreateMemoryScreen() {
           <Text className="text-[16px] font-medium text-gray-500">Cancel</Text>
         </TouchableOpacity>
 
-        <Text className="text-[16px] font-bold text-gray-900">New Memory</Text>
+        <Text className="text-[16px] font-bold text-gray-900">
+          {isEditing ? 'Edit Memory' : 'New Memory'}
+        </Text>
 
         <TouchableOpacity
           className={`rounded-full px-4 py-1.5 ${isPostEnabled ? 'bg-[#84cc16]' : 'bg-green-100/50'}`}
@@ -262,7 +341,7 @@ export default function CreateMemoryScreen() {
           ) : (
             <Text
               className={`text-[14px] font-bold ${isPostEnabled ? 'text-white' : 'text-green-800/40'}`}>
-              Post
+              {isEditing ? 'Save' : 'Post'}
             </Text>
           )}
         </TouchableOpacity>
@@ -399,6 +478,26 @@ export default function CreateMemoryScreen() {
               )}
             </View>
           </View>
+
+          {isEditing ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Delete memory"
+              onPress={handleDelete}
+              disabled={isDeleting || isPosting}
+              className={`mb-10 mt-8 flex-row items-center justify-center rounded-2xl border border-red-200 py-4 ${
+                isDeleting || isPosting ? 'opacity-50' : ''
+              }`}>
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#dc2626" />
+              ) : (
+                <>
+                  <Feather name="trash-2" size={18} color="#dc2626" />
+                  <Text className="ml-2 text-[15px] font-bold text-red-600">Delete Memory</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          ) : null}
         </ScrollView>
 
         {/* Action Toolbar */}

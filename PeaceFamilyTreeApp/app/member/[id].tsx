@@ -5,7 +5,6 @@ import {
   Alert,
   Animated,
   Dimensions,
-  Image,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -18,8 +17,9 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
 import { useColorScheme } from 'nativewind';
+import { OptimizedImage as Image } from '../../components/OptimizedImage';
+import { showImageSourcePicker } from '../../lib/imagePicker';
 
 import { useAuth } from '../../lib/auth-context';
 import {
@@ -247,7 +247,7 @@ function ImagePreviewModal({ visible, imageUrl, onClose }: ImagePreviewModalProp
 export default function MemberProfileScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { colorScheme } = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
 
@@ -263,10 +263,11 @@ export default function MemberProfileScreen() {
   const [mediaUploading, setMediaUploading] = useState(false);
   const [showTimelineModal, setShowTimelineModal] = useState(false);
   const [timelineSaving, setTimelineSaving] = useState(false);
+  const [profileDeleting, setProfileDeleting] = useState(false);
 
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  const isAdmin = currentProfile?.role === 'admin';
+  const isAdmin = role === 'admin';
   const isOwnProfile = profile?.id === currentProfile?.id || (user && profile?.user_id === user.id);
 
   // Shimmer animation for skeleton
@@ -304,73 +305,63 @@ export default function MemberProfileScreen() {
   useEffect(() => { loadData(); }, [loadData]);
 
   // ── Avatar upload ────────────────────────────────────────────────────────
-  const handleAvatarPress = async () => {
+  const handleAvatarPress = () => {
     if (!user || !id || !profile) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission required', 'Please allow access to your photo library.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (result.canceled || !result.assets?.[0]?.uri) return;
-    setAvatarUploading(true);
-
-    // If Admin or Own Profile, upload directly
-    if (isAdmin || isOwnProfile) {
-      const res = await uploadAvatar(result.assets[0].uri, user.id, id);
-      if ('error' in res) {
-        Alert.alert('Upload failed', res.error);
-      } else {
-        setProfile((prev) => prev ? { ...prev, avatar_url: res.url } : prev);
+    showImageSourcePicker(
+      { title: 'Change profile photo', allowsEditing: true, aspect: [1, 1], quality: 0.8 },
+      async ([uri]) => {
+        if (!uri) return;
+        setAvatarUploading(true);
+        try {
+          if (isAdmin || isOwnProfile) {
+            const res = await uploadAvatar(uri, user.id, id);
+            if ('error' in res) {
+              Alert.alert('Upload failed', res.error);
+            } else {
+              setProfile((prev) => (prev ? { ...prev, avatar_url: res.url } : prev));
+            }
+          } else {
+            Alert.alert(
+              'Admin Only',
+              'Profile photo updates are currently restricted to administrators.'
+            );
+          }
+        } finally {
+          setAvatarUploading(false);
+        }
       }
-    } 
-    // For non-admins, we restrict direct updates. 
-    else {
-      Alert.alert('Admin Only', 'Profile photo updates are currently restricted to administrators.');
-    }
-    setAvatarUploading(false);
+    );
   };
 
   // ── Gallery upload ───────────────────────────────────────────────────────
-  const handleMediaAdd = async () => {
+  const handleMediaAdd = () => {
     if (!user || !id) return;
-    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!permission.granted) {
-      Alert.alert('Permission required', 'Please allow access to your photo library.');
-      return;
-    }
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.8,
+    showImageSourcePicker({ title: 'Add gallery photo', quality: 0.8 }, async ([uri]) => {
+      if (!uri) return;
+      setMediaUploading(true);
+      try {
+        const res = await uploadMemberMedia(uri, user.id, id);
+        if ('error' in res) {
+          Alert.alert('Upload failed', res.error);
+        } else {
+          // Optimistically prepend
+          setMedia((prev) => [{
+            id: Date.now().toString(),
+            author_profile_id: id,
+            created_by: user.id,
+            type: 'photo',
+            title: null,
+            body: null,
+            location: null,
+            image_urls: [res.url],
+            audio_url: null,
+            created_at: new Date().toISOString(),
+          }, ...prev]);
+        }
+      } finally {
+        setMediaUploading(false);
+      }
     });
-    if (result.canceled || !result.assets?.[0]?.uri) return;
-    setMediaUploading(true);
-    const res = await uploadMemberMedia(result.assets[0].uri, user.id, id);
-    if ('error' in res) {
-      Alert.alert('Upload failed', res.error);
-    } else {
-      // Optimistically prepend
-      setMedia((prev) => [{
-        id: Date.now().toString(),
-        author_profile_id: id,
-        created_by: user.id,
-        type: 'photo',
-        title: null,
-        body: null,
-        location: null,
-        image_urls: [res.url],
-        audio_url: null,
-        created_at: new Date().toISOString(),
-      }, ...prev]);
-    }
-    setMediaUploading(false);
   };
 
   // ── Add timeline event ────────────────────────────────────────────────────
@@ -431,6 +422,37 @@ export default function MemberProfileScreen() {
       message: `You've been added to our LineageX family tree! Download the LineageX app, tap "Create Account" → "Join Family", and enter your invite code:\n\n${code}\n\nThis code expires in 72 hours.`,
       title: 'Join LineageX',
     });
+  };
+
+  const confirmDeleteProfile = () => {
+    if (!profile || profileDeleting) return;
+
+    Alert.alert(
+      'Delete Profile',
+      `Delete ${profile.full_name}? Their profile, relationships, and timeline events will be permanently removed. Family memories will be kept without a profile link.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setProfileDeleting(true);
+            const { error } = await deleteProfile(profile.id);
+            if (error) {
+              setProfileDeleting(false);
+              Alert.alert('Could not delete profile', error);
+              return;
+            }
+
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/tree');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleDeleteTimelineEvent = async (event: TimelineEvent) => {
@@ -517,53 +539,44 @@ export default function MemberProfileScreen() {
           <TouchableOpacity>
             <Feather name="share" size={24} color={isDarkMode ? '#ffffff' : "#111827"} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => {
-            if (!profile) return;
-            const options: any[] = [
-              { text: 'Edit Profile', onPress: () => router.push(`/member/edit/${id}`) }
-            ];
 
-            const isOwnProfile = profile.id === currentProfile?.id || (user && profile.user_id === user.id);
-            const isAdmin = currentProfile?.role === 'admin';
-            const noUserId = profile.user_id == null;
-
-            if (!isOwnProfile && isAdmin && noUserId) {
-              options.push({
-                text: 'Delete Profile',
-                style: 'destructive',
-                onPress: () => {
-                  Alert.alert(
-                    'Delete Profile',
-                    `Are you sure you want to completely remove ${profile.full_name}? This action cannot be undone.`,
-                    [
-                      { text: 'Cancel', style: 'cancel' },
-                      { 
-                        text: 'Delete', 
-                        style: 'destructive',
-                        onPress: async () => {
-                          const { error } = await deleteProfile(profile.id);
-                          if (error) {
-                            Alert.alert('Error', error);
-                          } else {
-                            if (router.canGoBack()) {
-                              router.back();
-                            } else {
-                              router.push('/(tabs)/tree');
-                            }
-                          }
-                        }
-                      }
-                    ]
-                  );
-                }
-              });
-            }
-
-            options.push({ text: 'Cancel', style: 'cancel' });
-            Alert.alert('Profile Options', '', options);
-          }}>
-            <Feather name="more-horizontal" size={24} color={isDarkMode ? '#ffffff' : "#111827"} />
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`Edit ${profile.full_name}'s profile`}
+            onPress={() => router.push(`/member/edit/${id}`)}
+            className="h-10 flex-row items-center gap-2 rounded-full bg-emerald-50 px-4 dark:bg-emerald-950/30">
+            <Feather name="edit-2" size={15} color="#059669" />
+            <Text className="text-[13px] font-bold text-emerald-700 dark:text-emerald-400">
+              Edit Profile
+            </Text>
           </TouchableOpacity>
+
+          {!isOwnProfile && isAdmin && profile.user_id == null ? (
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="More profile options"
+              disabled={profileDeleting}
+              onPress={() => {
+                Alert.alert('Profile Options', '', [
+                  {
+                    text: 'Delete Profile',
+                    style: 'destructive',
+                    onPress: confirmDeleteProfile,
+                  },
+                  { text: 'Cancel', style: 'cancel' },
+                ]);
+              }}>
+              {profileDeleting ? (
+                <ActivityIndicator size="small" color="#059669" />
+              ) : (
+                <Feather
+                  name="more-horizontal"
+                  size={24}
+                  color={isDarkMode ? '#ffffff' : '#111827'}
+                />
+              )}
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
 

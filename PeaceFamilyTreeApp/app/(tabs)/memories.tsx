@@ -1,21 +1,22 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   View,
   Text,
   TextInput,
+  FlatList,
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
-  RefreshControl,
   Modal,
   Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import MemoryCard, { MemoryData } from '../../components/MemoryCard';
 import { fetchMemoriesWithProfiles, MemoryWithProfile } from '../../lib/memoryService';
+import { useAuth } from '../../lib/auth-context';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -34,6 +35,7 @@ function toMemoryData(m: MemoryWithProfile): MemoryData {
   const base = {
     id: m.id,
     type: m.type,
+    createdBy: m.created_by,
     author: {
       name: authorName,
       avatar: authorAvatar,
@@ -47,7 +49,7 @@ function toMemoryData(m: MemoryWithProfile): MemoryData {
       ...base,
       content: {
         images: m.image_urls?.length ? m.image_urls : undefined,
-        title: m.title || 'Family Photo',
+        title: m.title?.trim() || undefined,
         location: m.location ?? undefined,
         date: addedLabel,
       },
@@ -85,6 +87,7 @@ function toMemoryData(m: MemoryWithProfile): MemoryData {
 
 export default function MemoriesScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const { colorScheme } = useColorScheme();
   const isDarkMode = colorScheme === 'dark';
   const [activeFilter, setActiveFilter] = useState('All');
@@ -106,9 +109,19 @@ export default function MemoriesScreen() {
     else setIsLoading(false);
   }, []);
 
-  useEffect(() => {
-    loadMemories();
-  }, [loadMemories]);
+  useFocusEffect(
+    useCallback(() => {
+      loadMemories();
+    }, [loadMemories])
+  );
+
+  const editMemory = useCallback(
+    (memory: MemoryData) => {
+      setSelectedMemory(null);
+      router.push(`/memory/edit/${memory.id}` as any);
+    },
+    [router]
+  );
 
   const typeMap: Record<string, string> = {
     Photos: 'photo',
@@ -152,6 +165,18 @@ export default function MemoriesScreen() {
               <Text className="flex-1 text-[17px] font-bold text-gray-900 dark:text-white" numberOfLines={1}>
                 {selectedMemory?.content.title || 'Memory Detail'}
               </Text>
+              {selectedMemory?.createdBy === user?.id ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel="Edit memory"
+                  onPress={() => selectedMemory && editMemory(selectedMemory)}
+                  className="ml-4 flex-row items-center rounded-full bg-emerald-50 px-3 py-2 dark:bg-emerald-950/30">
+                  <Feather name="edit-2" size={14} color="#059669" />
+                  <Text className="ml-1.5 text-[12px] font-bold text-emerald-700 dark:text-emerald-400">
+                    Edit
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
               <TouchableOpacity
                 onPress={() => setSelectedMemory(null)}
                 className="ml-4 h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800">
@@ -174,85 +199,92 @@ export default function MemoriesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
+      <FlatList
+        data={isLoading ? [] : filtered}
+        keyExtractor={(memory) => memory.id}
+        renderItem={({ item: memory }) => (
+          <View className="px-6">
+            <MemoryCard
+              memory={memory}
+              onPress={() => setSelectedMemory(memory)}
+              onEdit={memory.createdBy === user?.id ? () => editMemory(memory) : undefined}
+            />
+          </View>
+        )}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 100 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={() => loadMemories(true)}
-            tintColor="#84cc16"
-          />
-        }>
-        {/* Search Bar */}
-        <View className="mb-4 px-6">
-          <View className="flex-row items-center rounded-full border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3">
-            <Feather name="search" size={18} color="#9ca3af" />
-            <TextInput
-              value={search}
-              onChangeText={setSearch}
-              placeholder="Search family stories..."
-              placeholderTextColor="#9ca3af"
-              className="ml-3 flex-1 text-[15px] font-medium text-gray-900 dark:text-white"
-            />
-            {search.length > 0 && (
-              <TouchableOpacity onPress={() => setSearch('')}>
-                <Feather name="x" size={16} color="#9ca3af" />
-              </TouchableOpacity>
+        refreshing={isRefreshing}
+        onRefresh={() => loadMemories(true)}
+        initialNumToRender={3}
+        maxToRenderPerBatch={3}
+        windowSize={5}
+        ListHeaderComponent={
+          <>
+            {/* Search Bar */}
+            <View className="mb-4 px-6">
+              <View className="flex-row items-center rounded-full border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3">
+                <Feather name="search" size={18} color="#9ca3af" />
+                <TextInput
+                  value={search}
+                  onChangeText={setSearch}
+                  placeholder="Search family stories..."
+                  placeholderTextColor="#9ca3af"
+                  className="ml-3 flex-1 text-[15px] font-medium text-gray-900 dark:text-white"
+                />
+                {search.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearch('')}>
+                    <Feather name="x" size={16} color="#9ca3af" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+
+            {/* Filter Pills */}
+            <View className="mb-6 flex-row gap-x-2 px-6 pt-1">
+              {filters.map((filter) => {
+                const isActive = activeFilter === filter;
+                return (
+                  <TouchableOpacity
+                    key={filter}
+                    onPress={() => setActiveFilter(filter)}
+                    className={`flex-1 items-center justify-center rounded-full py-[10px] ${isActive ? 'bg-[#84cc16]' : 'bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800'}`}>
+                    <Text
+                      className={`text-[13px] font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-slate-400'}`}>
+                      {filter}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </>
+        }
+        ListEmptyComponent={
+          <View className="mt-16 items-center px-6">
+            {isLoading ? (
+              <>
+                <ActivityIndicator size="large" color="#84cc16" />
+                <Text className="mt-4 text-[14px] font-medium text-gray-400 dark:text-slate-500">
+                  Loading memories...
+                </Text>
+              </>
+            ) : (
+              <>
+                <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-[#f0f9ed] dark:bg-emerald-950/20">
+                  <Feather name="image" size={28} color="#84cc16" />
+                </View>
+                <Text className="text-[18px] font-bold text-gray-800 dark:text-white">
+                  No memories yet
+                </Text>
+                <Text className="mt-2 text-center text-[14px] font-medium text-gray-400 dark:text-slate-500">
+                  {search
+                    ? 'No memories match your search.'
+                    : "Start capturing your family's precious moments."}
+                </Text>
+              </>
             )}
           </View>
-        </View>
-
-        {/* Filter Pills */}
-        <View className="mb-6 flex-row gap-x-2 px-6 pt-1">
-          {filters.map((filter) => {
-            const isActive = activeFilter === filter;
-            return (
-              <TouchableOpacity
-                key={filter}
-                onPress={() => setActiveFilter(filter)}
-                className={`flex-1 items-center justify-center rounded-full py-[10px] ${isActive ? 'bg-[#84cc16]' : 'bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800'}`}>
-                <Text
-                  className={`text-[13px] font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-slate-400'}`}>
-                  {filter}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Feed */}
-        <View className="px-6">
-          {isLoading ? (
-            <View className="mt-16 items-center">
-              <ActivityIndicator size="large" color="#84cc16" />
-              <Text className="mt-4 text-[14px] font-medium text-gray-400 dark:text-slate-500">
-                Loading memories...
-              </Text>
-            </View>
-          ) : filtered.length === 0 ? (
-            <View className="mt-16 items-center">
-              <View className="mb-4 h-16 w-16 items-center justify-center rounded-full bg-[#f0f9ed] dark:bg-emerald-950/20">
-                <Feather name="image" size={28} color="#84cc16" />
-              </View>
-              <Text className="text-[18px] font-bold text-gray-800 dark:text-white">No memories yet</Text>
-              <Text className="mt-2 text-center text-[14px] font-medium text-gray-400 dark:text-slate-500">
-                {search
-                  ? 'No memories match your search.'
-                  : "Start capturing your family's precious moments."}
-              </Text>
-            </View>
-          ) : (
-            filtered.map((memory) => (
-              <MemoryCard
-                key={memory.id}
-                memory={memory}
-                onPress={() => setSelectedMemory(memory)}
-              />
-            ))
-          )}
-        </View>
-      </ScrollView>
+        }
+      />
 
       {/* Floating Action Button */}
       <TouchableOpacity
