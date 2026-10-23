@@ -18,10 +18,13 @@ import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/dat
 
 import { useRouter as useExpoRouter } from 'expo-router';
 import { formatDateOnly, parseDateOnly } from '../lib/dateOnly';
+import { useColorScheme } from 'nativewind';
 
 export default function OnboardingScreen() {
   const { user, refreshProfile, signOut } = useAuth();
   const router = useExpoRouter();
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
 
   const [step, setStep] = useState<'name' | 'dob_gender'>('name');
 
@@ -134,7 +137,7 @@ export default function OnboardingScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-white">
+    <SafeAreaView className="flex-1 bg-white dark:bg-slate-950">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1">
@@ -144,12 +147,14 @@ export default function OnboardingScreen() {
               <TouchableOpacity
                 onPress={() => setStep('name')}
                 className="h-10 w-10 justify-center">
-                <Ionicons name="arrow-back" size={24} color="black" />
+                <Ionicons name="arrow-back" size={24} color={isDarkMode ? '#ffffff' : '#111827'} />
               </TouchableOpacity>
             )}
           </View>
           <TouchableOpacity onPress={signOut} className="h-10 justify-center">
-            <Text className="text-sm font-semibold text-gray-400">Sign out</Text>
+            <Text className="text-sm font-semibold text-gray-400 dark:text-slate-400">
+              Sign out
+            </Text>
           </TouchableOpacity>
         </View>
 
@@ -160,8 +165,12 @@ export default function OnboardingScreen() {
           {step === 'name' && (
             <View className="flex-1">
               <View className="mb-8">
-                <Text className="mb-2 text-3xl font-bold text-gray-900">What’s your Name?</Text>
-                <Text className="text-base text-gray-500">You’re almost done</Text>
+                <Text className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
+                  What’s your Name?
+                </Text>
+                <Text className="text-base text-gray-500 dark:text-slate-400">
+                  You’re almost done
+                </Text>
               </View>
 
               <View>
@@ -176,8 +185,10 @@ export default function OnboardingScreen() {
                 <Input placeholder="Last name" value={lastName} onChangeText={setLastName} />
 
                 {error ? (
-                  <View className="mb-4 rounded-xl bg-red-50 p-4">
-                    <Text className="text-sm font-semibold text-red-600">{error}</Text>
+                  <View className="mb-4 rounded-xl bg-red-50 p-4 dark:bg-red-950/20">
+                    <Text className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      {error}
+                    </Text>
                   </View>
                 ) : null}
 
@@ -189,28 +200,37 @@ export default function OnboardingScreen() {
           {step === 'dob_gender' && (
             <View className="flex-1">
               <View className="mb-8">
-                <Text className="mb-2 text-3xl font-bold text-gray-900">Final Details</Text>
-                <Text className="text-base text-gray-500">
+                <Text className="mb-2 text-3xl font-bold text-gray-900 dark:text-white">
+                  Final Details
+                </Text>
+                <Text className="text-base text-gray-500 dark:text-slate-400">
                   When were you born and what is your gender?
                 </Text>
               </View>
 
               <View>
-                <Text className="mb-2 text-sm font-semibold text-gray-700">Date of Birth</Text>
+                <Text className="mb-2 text-sm font-semibold text-gray-700 dark:text-slate-300">
+                  Date of Birth
+                </Text>
                 <TouchableOpacity
                   onPress={() => {
                     Keyboard.dismiss();
                     setShowDatePicker(true);
                   }}
-                  className="mb-4 w-full rounded-2xl border border-transparent bg-gray-100 px-5 py-4">
-                  <Text className={dob ? 'text-base text-gray-900' : 'text-base text-gray-400'}>
+                  className="mb-4 w-full rounded-2xl border border-transparent bg-gray-100 px-5 py-4 dark:bg-slate-800">
+                  <Text
+                    className={
+                      dob
+                        ? 'text-base text-gray-900 dark:text-white'
+                        : 'text-base text-gray-400 dark:text-slate-500'
+                    }>
                     {dob ? dob : 'YYYY-MM-DD'}
                   </Text>
                 </TouchableOpacity>
 
                 {showDatePicker &&
                   (Platform.OS === 'ios' ? (
-                    <View className="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 px-2 pb-4 pt-2">
+                    <View className="mb-4 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 px-2 pb-4 pt-2 dark:border-slate-800 dark:bg-slate-900">
                       <View className="mb-2 flex-row justify-end px-2">
                         <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                           <Text className="text-base font-bold text-emerald-600">Done</Text>
@@ -222,6 +242,7 @@ export default function OnboardingScreen() {
                         display="inline"
                         onChange={onDateChange}
                         maximumDate={new Date()}
+                        themeVariant={isDarkMode ? 'dark' : 'light'}
                       />
                     </View>
                   ) : (
@@ -234,29 +255,33 @@ export default function OnboardingScreen() {
                     />
                   ))}
 
-                <Text className="mb-2 mt-4 text-sm font-semibold text-gray-700">Gender</Text>
+                <Text className="mb-2 mt-4 text-sm font-semibold text-gray-700 dark:text-slate-300">
+                  Gender
+                </Text>
                 <View className="mb-8 flex-row gap-4">
                   <TouchableOpacity
                     onPress={() => setGender('male')}
-                    className={`flex-1 items-center rounded-2xl border py-4 ${gender === 'male' ? 'border-[#064e3b] bg-emerald-50' : 'border-gray-200 bg-white'}`}>
+                    className={`flex-1 items-center rounded-2xl border py-4 ${gender === 'male' ? 'border-[#064e3b] bg-emerald-50 dark:bg-emerald-950/30' : 'border-gray-200 bg-white dark:border-slate-800 dark:bg-slate-900'}`}>
                     <Text
-                      className={`font-semibold ${gender === 'male' ? 'text-[#064e3b]' : 'text-gray-500'}`}>
+                      className={`font-semibold ${gender === 'male' ? 'text-[#064e3b] dark:text-emerald-300' : 'text-gray-500 dark:text-slate-400'}`}>
                       Male
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => setGender('female')}
-                    className={`flex-1 items-center rounded-2xl border py-4 ${gender === 'female' ? 'border-[#064e3b] bg-emerald-50' : 'border-gray-200 bg-white'}`}>
+                    className={`flex-1 items-center rounded-2xl border py-4 ${gender === 'female' ? 'border-[#064e3b] bg-emerald-50 dark:bg-emerald-950/30' : 'border-gray-200 bg-white dark:border-slate-800 dark:bg-slate-900'}`}>
                     <Text
-                      className={`font-semibold ${gender === 'female' ? 'text-[#064e3b]' : 'text-gray-500'}`}>
+                      className={`font-semibold ${gender === 'female' ? 'text-[#064e3b] dark:text-emerald-300' : 'text-gray-500 dark:text-slate-400'}`}>
                       Female
                     </Text>
                   </TouchableOpacity>
                 </View>
 
                 {error ? (
-                  <View className="mb-4 rounded-xl bg-red-50 p-4">
-                    <Text className="text-sm font-semibold text-red-600">{error}</Text>
+                  <View className="mb-4 rounded-xl bg-red-50 p-4 dark:bg-red-950/20">
+                    <Text className="text-sm font-semibold text-red-600 dark:text-red-400">
+                      {error}
+                    </Text>
                   </View>
                 ) : null}
 

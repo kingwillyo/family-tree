@@ -4,13 +4,13 @@ import {
   Dimensions,
   FlatList,
   Image,
-  SafeAreaView,
   Text,
   TouchableOpacity,
   View,
   ViewToken,
 } from 'react-native';
 import { Button } from '../../components/Button';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
