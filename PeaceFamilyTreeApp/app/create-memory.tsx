@@ -11,6 +11,7 @@ import {
   Dimensions,
   ActivityIndicator,
   Alert,
+  Keyboard,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,8 +21,16 @@ import { useAuth } from '../lib/auth-context';
 import { createMemory, deleteMemory, fetchMemoryById, updateMemory } from '../lib/memoryService';
 import { fetchCurrentUserProfile, Profile } from '../lib/treeService';
 import { OptimizedImage as Image } from '../components/OptimizedImage';
+import AudioNote from '../components/AudioNote';
 import { showImageSourcePicker } from '../lib/imagePicker';
 import { useColorScheme } from 'nativewind';
+import {
+  AudioModule,
+  RecordingPresets,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from 'expo-audio';
 
 export default function CreateMemoryScreen() {
   const router = useRouter();
@@ -45,6 +54,25 @@ export default function CreateMemoryScreen() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLoadingMemory, setIsLoadingMemory] = useState(Boolean(editingMemoryId));
   const [profile, setProfile] = useState<Profile | null>(null);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const showSubscription = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+    });
+    const hideSubscription = Keyboard.addListener(hideEvent, () => {
+      setKeyboardHeight(0);
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     if (user) {
@@ -115,13 +143,39 @@ export default function CreateMemoryScreen() {
     });
   };
 
-  const handleAudioUpload = () => {
-    setActiveType('audio');
-    // Mocking an audio recording to avoid native module crashes in Expo Go
-    setMediaUri('mock_audio');
+  const handleAudioUpload = async () => {
+    try {
+      if (recorderState.isRecording) {
+        await audioRecorder.stop();
+        if (audioRecorder.uri) setMediaUri(audioRecorder.uri);
+        return;
+      }
+
+      const permission = await AudioModule.requestRecordingPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Microphone permission required',
+          'Allow microphone access to record a voice note.'
+        );
+        return;
+      }
+
+      await setAudioModeAsync({ playsInSilentMode: true, allowsRecording: true });
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
+      setActiveType('audio');
+    } catch (error) {
+      Alert.alert(
+        'Recording failed',
+        error instanceof Error ? error.message : 'The voice note could not be recorded.'
+      );
+    }
   };
 
-  const clearAudio = () => {
+  const clearAudio = async () => {
+    if (recorderState.isRecording) {
+      await audioRecorder.stop();
+    }
     setActiveType('story');
     setMediaUri(null);
   };
@@ -356,9 +410,7 @@ export default function CreateMemoryScreen() {
         </TouchableOpacity>
       </View>
 
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1">
+      <View className="flex-1">
         <ScrollView
           className="flex-1"
           contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 20 }}
@@ -456,39 +508,35 @@ export default function CreateMemoryScreen() {
               )}
 
               {activeType === 'audio' && (
-                <View className="mt-3 flex-row items-center justify-between rounded-xl border border-gray-100 bg-[#f9fafb] p-4 dark:border-slate-700 dark:bg-slate-800">
-                  <View className="flex-1 flex-row items-center">
-                    <TouchableOpacity className="mr-3 items-center justify-center rounded-full bg-[#84cc16] p-2.5">
-                      <Ionicons name="play" size={20} color="white" style={{ marginLeft: 2 }} />
+                <View className="mt-3 rounded-xl border border-gray-100 bg-[#f9fafb] p-4 dark:border-slate-700 dark:bg-slate-800">
+                  <View className="flex-row items-center">
+                    <TouchableOpacity
+                      onPress={handleAudioUpload}
+                      className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-[#84cc16]">
+                      <Ionicons
+                        name={recorderState.isRecording ? 'stop' : 'mic'}
+                        size={18}
+                        color="white"
+                      />
                     </TouchableOpacity>
-                    <View className="mr-4 flex-1">
-                      <View className="h-6 flex-row items-end items-center justify-between overflow-hidden">
-                        {[
-                          10, 15, 8, 20, 24, 12, 16, 22, 14, 8, 18, 24, 16, 10, 14, 20, 12, 18, 8,
-                          14, 22, 16,
-                        ].map((height, i) => (
-                          <View
-                            key={i}
-                            className="w-[3px] rounded-full bg-[#84cc16]"
-                            style={{ height: height }}
-                          />
-                        ))}
-                      </View>
-                      <View className="mt-2 flex-row justify-between">
-                        <Text className="text-[12px] font-medium text-gray-500 dark:text-slate-400">
-                          0:00
-                        </Text>
-                        <Text className="text-[12px] font-medium text-gray-500 dark:text-slate-400">
-                          2:15
-                        </Text>
-                      </View>
-                    </View>
+                    <Text className="flex-1 text-[13px] font-medium text-gray-500 dark:text-slate-400">
+                      {recorderState.isRecording
+                        ? `Recording ${Math.floor(recorderState.durationMillis / 1000)}s`
+                        : mediaUri
+                          ? 'Voice note ready'
+                          : 'Tap the microphone to record'}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={clearAudio}
+                      className="items-center justify-center rounded-full bg-gray-200 p-1.5 dark:bg-slate-700">
+                      <Feather name="x" size={14} color={isDarkMode ? '#cbd5e1' : '#6b7280'} />
+                    </TouchableOpacity>
                   </View>
-                  <TouchableOpacity
-                    onPress={clearAudio}
-                    className="items-center justify-center rounded-full bg-gray-200 p-1.5 dark:bg-slate-700">
-                    <Feather name="x" size={14} color={isDarkMode ? '#cbd5e1' : '#6b7280'} />
-                  </TouchableOpacity>
+                  {mediaUri && !recorderState.isRecording ? (
+                    <View className="mt-3">
+                      <AudioNote uri={mediaUri} compact />
+                    </View>
+                  ) : null}
                 </View>
               )}
             </View>
@@ -516,7 +564,9 @@ export default function CreateMemoryScreen() {
         </ScrollView>
 
         {/* Action Toolbar */}
-        <View className="flex-row items-center border-t border-gray-100/80 bg-white px-4 py-3 pb-6 dark:border-slate-800 dark:bg-slate-900">
+        <View
+          className="flex-row items-center border-t border-gray-100/80 bg-white px-4 py-3 pb-6 dark:border-slate-800 dark:bg-slate-900"
+          style={{ marginBottom: keyboardHeight }}>
           <TouchableOpacity
             onPress={handlePhotoUpload}
             className={`mr-5 items-center justify-center rounded-full p-2 ${
@@ -554,7 +604,7 @@ export default function CreateMemoryScreen() {
             <Feather name="user-plus" size={22} color={isDarkMode ? '#a3e635' : '#84cc16'} />
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </SafeAreaView>
   );
 }

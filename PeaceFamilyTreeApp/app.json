@@ -31,14 +31,22 @@
           "image": "./assets/splash-icon-dark.png"
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Allow LineageX to record voice notes for family memories.",
+          "enableBackgroundPlayback": true,
+          "enableBackgroundRecording": false
+        }
+      ],
+      "expo-asset",
+      "expo-asset"
     ],
     "orientation": "portrait",
     "icon": "./assets/ios-light.png",
     "userInterfaceStyle": "automatic",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
+    "assetBundlePatterns": ["**/*"],
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.kingwillyo.lineagex"

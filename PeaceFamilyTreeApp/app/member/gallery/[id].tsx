@@ -12,6 +12,7 @@ import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { OptimizedImage as Image } from '../../../components/OptimizedImage';
 import { GalleryPhoto, GalleryViewer } from '../../../components/GalleryViewer';
+import AudioNote from '../../../components/AudioNote';
 
 import { Memory, fetchMemberMedia, fetchProfileById, Profile } from '../../../lib/treeService';
 import { useAuth } from '../../../lib/auth-context';
@@ -93,13 +94,8 @@ export default function MemberGalleryScreen() {
       return (
         <View
           style={{ width: itemSize, height: itemSize, margin: 4 }}
-          className="items-center justify-center rounded-[24px] bg-[#f0f9ed] dark:bg-slate-800">
-          <View className="mb-2 h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-700">
-            <Feather name="mic" size={18} color={isDarkMode ? '#6ee7b7' : '#059669'} />
-          </View>
-          <Text className="text-[9px] font-bold uppercase tracking-widest text-[#059669] dark:text-emerald-300">
-            VOICENOTE
-          </Text>
+          className="justify-center rounded-[24px] bg-[#f0f9ed] p-2 dark:bg-slate-800">
+          <AudioNote uri={item.memory.audio_url} compact />
         </View>
       );
     }

@@ -11,7 +11,7 @@ export interface CreateMemoryInput {
   body?: string;
   location?: string;
   imageUris?: string[]; // local file URIs — will be uploaded
-  audioUri?: string; // local file URI or 'mock_audio'
+  audioUri?: string; // local file URI or uploaded public URL
   authorProfileId?: string;
 }
 
@@ -70,6 +70,34 @@ export async function uploadMemoryImage(localUri: string, userId: string): Promi
   return data.publicUrl;
 }
 
+export async function uploadMemoryAudio(localUri: string, userId: string): Promise<string> {
+  const base64 = await FileSystem.readAsStringAsync(localUri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+  const ext = localUri.split('.').pop()?.split('?')[0].toLowerCase() ?? 'm4a';
+  const mimeType = ext === 'wav' ? 'audio/wav' : ext === 'mp3' ? 'audio/mpeg' : 'audio/mp4';
+  const uniqueSuffix = Math.random().toString(36).slice(2, 10);
+  const path = `${userId}/${Date.now()}-${uniqueSuffix}.${ext}`;
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+
+  const { error: uploadError } = await supabase.storage.from('memory-images').upload(path, bytes, {
+    contentType: mimeType,
+    cacheControl: '31536000',
+    upsert: false,
+  });
+
+  if (uploadError) {
+    throw new Error(`Audio upload failed: ${uploadError.message}`);
+  }
+
+  const { data } = supabase.storage.from('memory-images').getPublicUrl(path);
+  return data.publicUrl;
+}
+
 // ─────────────────────────────────────────────
 // 2. Create a memory row in the DB
 //    Handles image uploads internally, returns
@@ -81,11 +109,17 @@ export async function createMemory(
   userId: string
 ): Promise<{ id: string } | { error: string }> {
   try {
-    // Upload photos if present
+    // Upload photos and audio before creating the memory row.
     let imageUrls: string[] = [];
     if (input.imageUris && input.imageUris.length > 0) {
       imageUrls = await Promise.all(input.imageUris.map((uri) => uploadMemoryImage(uri, userId)));
     }
+    const audioUrl =
+      input.type === 'audio' && input.audioUri
+        ? /^https?:\/\//i.test(input.audioUri)
+          ? input.audioUri
+          : await uploadMemoryAudio(input.audioUri, userId)
+        : null;
 
     const { data, error } = await supabase
       .from('memories')
@@ -97,7 +131,7 @@ export async function createMemory(
         body: input.body || null,
         location: input.location || null,
         image_urls: imageUrls,
-        audio_url: input.audioUri && input.audioUri !== 'mock_audio' ? input.audioUri : null,
+        audio_url: audioUrl,
       })
       .select('id')
       .single();
@@ -185,7 +219,7 @@ export async function updateMemory(
   try {
     const { data: existing, error: fetchError } = await supabase
       .from('memories')
-      .select('id, created_by, author_profile_id, image_urls')
+      .select('id, created_by, author_profile_id, image_urls, audio_url')
       .eq('id', memoryId)
       .maybeSingle();
 
@@ -206,6 +240,12 @@ export async function updateMemory(
       newLocalImages.map((uri) => uploadMemoryImage(uri, userId))
     );
     const finalImages = [...keptImages, ...uploadedImages];
+    const audioUrl =
+      input.type === 'audio' && input.audioUri
+        ? /^https?:\/\//i.test(input.audioUri)
+          ? input.audioUri
+          : await uploadMemoryAudio(input.audioUri, userId)
+        : null;
 
     const { data, error } = await supabase
       .from('memories')
@@ -215,10 +255,7 @@ export async function updateMemory(
         body: input.type === 'story' ? input.body || null : null,
         location: input.location || null,
         image_urls: finalImages,
-        audio_url:
-          input.type === 'audio' && input.audioUri && input.audioUri !== 'mock_audio'
-            ? input.audioUri
-            : null,
+        audio_url: audioUrl,
       })
       .eq('id', memoryId)
       .eq('created_by', userId)
@@ -241,6 +278,21 @@ export async function updateMemory(
         if (cleanupError) {
           console.warn('Memory updated, but removed image cleanup failed:', cleanupError.message);
         }
+
+        if (existing.audio_url && existing.audio_url !== audioUrl) {
+          const audioPath = getOwnedImagePath(existing.audio_url, userId, null);
+          if (audioPath) {
+            const { error: cleanupError } = await supabase.storage
+              .from(audioPath.bucket)
+              .remove([audioPath.path]);
+            if (cleanupError) {
+              console.warn(
+                'Memory updated, but removed audio cleanup failed:',
+                cleanupError.message
+              );
+            }
+          }
+        }
       }
     }
 
@@ -254,7 +306,7 @@ export async function deleteMemory(memoryId: string, userId: string): Promise<{ 
   try {
     const { data: existing, error: fetchError } = await supabase
       .from('memories')
-      .select('id, created_by, author_profile_id, image_urls')
+      .select('id, created_by, author_profile_id, image_urls, audio_url')
       .eq('id', memoryId)
       .maybeSingle();
 
@@ -290,6 +342,18 @@ export async function deleteMemory(memoryId: string, userId: string): Promise<{ 
       const { error: cleanupError } = await supabase.storage.from(bucket).remove(paths);
       if (cleanupError) {
         console.warn('Memory deleted, but media cleanup failed:', cleanupError.message);
+      }
+
+      if (existing.audio_url) {
+        const audioPath = getOwnedImagePath(existing.audio_url, userId, null);
+        if (audioPath) {
+          const { error: cleanupError } = await supabase.storage
+            .from(audioPath.bucket)
+            .remove([audioPath.path]);
+          if (cleanupError) {
+            console.warn('Memory deleted, but audio cleanup failed:', cleanupError.message);
+          }
+        }
       }
     }
 

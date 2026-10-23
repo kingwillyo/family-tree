@@ -64,15 +64,18 @@ function toMemoryData(m: MemoryWithProfile): MemoryData {
         title: m.title || 'Audio Memory',
         location: m.location ?? undefined,
         date: addedLabel,
-        duration: '—',
-        currentTime: '0:00',
+        audioUrl: m.audio_url,
       },
     };
   }
 
   // story
-  const storyTitle = m.title || (m.body ? (m.body.split('\n')[0].slice(0, 40) + (m.body.length > 40 ? '...' : '')) : 'Family Story');
-  
+  const storyTitle =
+    m.title ||
+    (m.body
+      ? m.body.split('\n')[0].slice(0, 40) + (m.body.length > 40 ? '...' : '')
+      : 'Family Story');
+
   return {
     ...base,
     author: { ...base.author, added: 'WRITTEN STORY' },
@@ -161,8 +164,10 @@ export default function MemoriesScreen() {
               <View className="h-1.5 w-12 rounded-full bg-gray-300 dark:bg-slate-800" />
             </View>
 
-            <View className="flex-row items-center justify-between bg-white dark:bg-slate-900 px-6 py-4 border-b border-gray-100 dark:border-slate-800">
-              <Text className="flex-1 text-[17px] font-bold text-gray-900 dark:text-white" numberOfLines={1}>
+            <View className="flex-row items-center justify-between border-b border-gray-100 bg-white px-6 py-4 dark:border-slate-800 dark:bg-slate-900">
+              <Text
+                className="flex-1 text-[17px] font-bold text-gray-900 dark:text-white"
+                numberOfLines={1}>
                 {selectedMemory?.content.title || 'Memory Detail'}
               </Text>
               {selectedMemory?.createdBy === user?.id ? (
@@ -180,7 +185,7 @@ export default function MemoriesScreen() {
               <TouchableOpacity
                 onPress={() => setSelectedMemory(null)}
                 className="ml-4 h-8 w-8 items-center justify-center rounded-full bg-gray-100 dark:bg-slate-800">
-                <Feather name="x" size={18} color={isDarkMode ? '#ffffff' : "#4b5563"} />
+                <Feather name="x" size={18} color={isDarkMode ? '#ffffff' : '#4b5563'} />
               </TouchableOpacity>
             </View>
             <ScrollView showsVerticalScrollIndicator={false} className="p-4">
@@ -195,7 +200,7 @@ export default function MemoriesScreen() {
       <View className="flex-row items-center justify-between px-6 pb-4 pt-4">
         <Text className="text-[26px] font-bold text-gray-900 dark:text-white">Memories</Text>
         <TouchableOpacity className="-mr-2 p-2">
-          <Feather name="sliders" size={20} color={isDarkMode ? '#ffffff' : "#6b7280"} />
+          <Feather name="sliders" size={20} color={isDarkMode ? '#ffffff' : '#6b7280'} />
         </TouchableOpacity>
       </View>
 
@@ -222,7 +227,7 @@ export default function MemoriesScreen() {
           <>
             {/* Search Bar */}
             <View className="mb-4 px-6">
-              <View className="flex-row items-center rounded-full border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-3">
+              <View className="flex-row items-center rounded-full border border-gray-200 bg-white px-4 py-3 dark:border-slate-800 dark:bg-slate-900">
                 <Feather name="search" size={18} color="#9ca3af" />
                 <TextInput
                   value={search}
@@ -247,7 +252,7 @@ export default function MemoriesScreen() {
                   <TouchableOpacity
                     key={filter}
                     onPress={() => setActiveFilter(filter)}
-                    className={`flex-1 items-center justify-center rounded-full py-[10px] ${isActive ? 'bg-[#84cc16]' : 'bg-white dark:bg-slate-900 border border-transparent dark:border-slate-800'}`}>
+                    className={`flex-1 items-center justify-center rounded-full py-[10px] ${isActive ? 'bg-[#84cc16]' : 'border border-transparent bg-white dark:border-slate-800 dark:bg-slate-900'}`}>
                     <Text
                       className={`text-[13px] font-bold ${isActive ? 'text-white' : 'text-gray-500 dark:text-slate-400'}`}>
                       {filter}
