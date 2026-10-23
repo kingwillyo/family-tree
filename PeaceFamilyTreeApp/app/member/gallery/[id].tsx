@@ -15,6 +15,7 @@ import { GalleryPhoto, GalleryViewer } from '../../../components/GalleryViewer';
 
 import { Memory, fetchMemberMedia, fetchProfileById, Profile } from '../../../lib/treeService';
 import { useAuth } from '../../../lib/auth-context';
+import { useColorScheme } from 'nativewind';
 
 type GridItem =
   | { id: string; type: 'audio'; memory: Memory }
@@ -24,6 +25,8 @@ export default function MemberGalleryScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { user } = useAuth();
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
   const { width } = useWindowDimensions();
 
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -90,11 +93,11 @@ export default function MemberGalleryScreen() {
       return (
         <View
           style={{ width: itemSize, height: itemSize, margin: 4 }}
-          className="items-center justify-center rounded-[24px] bg-[#f0f9ed]">
-          <View className="mb-2 h-10 w-10 items-center justify-center rounded-full bg-white">
-            <Feather name="mic" size={18} color="#059669" />
+          className="items-center justify-center rounded-[24px] bg-[#f0f9ed] dark:bg-slate-800">
+          <View className="mb-2 h-10 w-10 items-center justify-center rounded-full bg-white dark:bg-slate-700">
+            <Feather name="mic" size={18} color={isDarkMode ? '#6ee7b7' : '#059669'} />
           </View>
-          <Text className="text-[9px] font-bold uppercase tracking-widest text-[#059669]">
+          <Text className="text-[9px] font-bold uppercase tracking-widest text-[#059669] dark:text-emerald-300">
             VOICENOTE
           </Text>
         </View>
@@ -104,7 +107,7 @@ export default function MemberGalleryScreen() {
     return (
       <View
         style={{ width: itemSize, height: itemSize, margin: 4 }}
-        className="overflow-hidden rounded-[24px] bg-gray-200">
+        className="overflow-hidden rounded-[24px] bg-gray-200 dark:bg-slate-800">
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel={`Open photo ${item.photoIndex + 1} of ${photos.length}`}
@@ -130,16 +133,18 @@ export default function MemberGalleryScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-[#fcFAF8]" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-[#fcFAF8] dark:bg-slate-950" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center px-6 pb-4 pt-2">
         <TouchableOpacity onPress={() => router.back()} className="-ml-2 p-2">
-          <Feather name="chevron-left" size={28} color="#111827" />
+          <Feather name="chevron-left" size={28} color={isDarkMode ? '#e2e8f0' : '#111827'} />
         </TouchableOpacity>
         <View className="ml-2">
-          <Text className="text-[20px] font-bold text-gray-900">Gallery</Text>
+          <Text className="text-[20px] font-bold text-gray-900 dark:text-white">Gallery</Text>
           {profile && (
-            <Text className="text-[13px] font-medium text-gray-400">{profile.full_name}</Text>
+            <Text className="text-[13px] font-medium text-gray-400 dark:text-slate-400">
+              {profile.full_name}
+            </Text>
           )}
         </View>
       </View>
@@ -160,7 +165,7 @@ export default function MemberGalleryScreen() {
           contentContainerStyle={{ padding: 20 }}
           ListEmptyComponent={
             <View className="items-center py-20">
-              <Text className="text-gray-400">No media found.</Text>
+              <Text className="text-gray-400 dark:text-slate-500">No media found.</Text>
             </View>
           }
         />

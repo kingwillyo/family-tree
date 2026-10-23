@@ -144,7 +144,7 @@ export default function RelationshipsScreen() {
       </View>
 
       <FlatList
-        data={results.length > 0 ? results : existing}
+        data={results}
         keyExtractor={(item) => ('otherId' in item ? item.id : (item as MemberProfile).id)}
         showsVerticalScrollIndicator={false}
         contentContainerClassName="px-6 pb-12"

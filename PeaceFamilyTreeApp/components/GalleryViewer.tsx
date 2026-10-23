@@ -271,11 +271,11 @@ function GalleryViewerModal({
       navigationBarTranslucent
       hardwareAccelerated
       onRequestClose={onClose}>
-      <StatusBar style="light" backgroundColor="black" />
+      <StatusBar style="light" />
       <View className="flex-1">
         <Animated.View
           pointerEvents="none"
-          style={[StyleSheet.absoluteFillObject, { backgroundColor: 'black' }, backdropStyle]}
+          style={[StyleSheet.absoluteFill, { backgroundColor: 'black' }, backdropStyle]}
         />
 
         <GestureDetector gesture={dismissGesture}>
@@ -306,7 +306,7 @@ function GalleryViewerModal({
 
         <Animated.View
           pointerEvents="box-none"
-          style={[StyleSheet.absoluteFillObject, controlsStyle]}>
+          style={[StyleSheet.absoluteFill, controlsStyle]}>
           <View
             className="absolute left-0 right-0 top-0 bg-black/55 px-3 pb-3"
             style={{ paddingTop: topInset + 4 }}>

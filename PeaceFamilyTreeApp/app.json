@@ -20,20 +20,22 @@
           "cameraPermission": "Allow LineageX to take photos for family memories.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      "expo-status-bar",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/splash-icon-dark.png"
+        }
+      ],
+      "expo-font"
     ],
     "orientation": "portrait",
-      "icon": {
-        "light": "./assets/ios-light.png",
-        "dark": "./assets/ios-dark.png",
-        "tinted": "./assets/ios-tinted.png"
-      },
+    "icon": "./assets/ios-light.png",
     "userInterfaceStyle": "automatic",
-    "splash": {
-      "image": "./assets/splash-icon-dark.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
     "assetBundlePatterns": [
       "**/*"
     ],

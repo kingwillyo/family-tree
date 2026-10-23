@@ -20,10 +20,13 @@ import { Input } from '../../../components/Input';
 import { Feather } from '@expo/vector-icons';
 import { Button } from '../../../components/Button';
 import { formatDateOnly, parseDateOnly } from '../../../lib/dateOnly';
+import { useColorScheme } from 'nativewind';
 
 export default function EditMemberScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -224,23 +227,25 @@ export default function EditMemberScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-[#fcfcfb]">
+      <SafeAreaView className="flex-1 items-center justify-center bg-[#fcfcfb] dark:bg-slate-950">
         <ActivityIndicator size="large" color="#8cc63f" />
-        <Text className="mt-3 text-sm font-medium text-[#9aa7a0]">Loading member…</Text>
+        <Text className="mt-3 text-sm font-medium text-[#9aa7a0] dark:text-slate-400">
+          Loading member…
+        </Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-[#fcfcfb]" edges={['top']}>
+    <SafeAreaView className="flex-1 bg-[#fcfcfb] dark:bg-slate-950" edges={['top']}>
       {/* Header */}
       <View className="flex-row items-center justify-between px-6 pb-4 pt-2">
         <TouchableOpacity
           onPress={() => router.back()}
           className="h-10 w-10 items-center justify-center">
-          <Feather name="x" size={24} color="#6d7b73" />
+          <Feather name="x" size={24} color={isDarkMode ? '#cbd5e1' : '#6d7b73'} />
         </TouchableOpacity>
-        <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44]">
+        <Text className="text-[13px] font-bold uppercase tracking-[0.15em] text-[#3e4d44] dark:text-slate-200">
           Edit Member
         </Text>
         <TouchableOpacity
@@ -294,7 +299,7 @@ export default function EditMemberScreen() {
           </View>
 
           <View className="mb-8">
-            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0]">
+            <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0] dark:text-slate-400">
               Date of Birth
             </Text>
             <TouchableOpacity
@@ -303,16 +308,21 @@ export default function EditMemberScreen() {
                 setShowDeathPicker(false);
                 setShowDatePicker(true);
               }}
-              className="w-full flex-row items-center justify-between rounded-2xl border border-[#f0f2f0] bg-white px-5 py-4">
-              <Text className={dob ? 'text-base text-[#1a2b21]' : 'text-base text-[#c4ccc7]'}>
+              className="w-full flex-row items-center justify-between rounded-2xl border border-[#f0f2f0] bg-white px-5 py-4 dark:border-slate-700 dark:bg-slate-800">
+              <Text
+                className={
+                  dob
+                    ? 'text-base text-[#1a2b21] dark:text-white'
+                    : 'text-base text-[#c4ccc7] dark:text-slate-400'
+                }>
                 {dob ? dob : 'YYYY-MM-DD'}
               </Text>
-              <Feather name="calendar" size={18} color="#6d7b73" />
+              <Feather name="calendar" size={18} color={isDarkMode ? '#cbd5e1' : '#6d7b73'} />
             </TouchableOpacity>
 
             {showDatePicker &&
               (Platform.OS === 'ios' ? (
-                <View className="mt-4 overflow-hidden rounded-2xl border border-[#f0f2f0] bg-white p-4">
+                <View className="mt-4 overflow-hidden rounded-2xl border border-[#f0f2f0] bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
                   <View className="mb-2 flex-row justify-end">
                     <TouchableOpacity onPress={() => setShowDatePicker(false)}>
                       <Text className="font-bold text-[#8cc63f]">Done</Text>
@@ -339,7 +349,7 @@ export default function EditMemberScreen() {
 
           {!isLiving && (
             <View className="mb-8">
-              <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0]">
+              <Text className="mb-2 text-[10px] font-bold uppercase tracking-[0.1em] text-[#9aa7a0] dark:text-slate-400">
                 Date of Death
               </Text>
               <TouchableOpacity
@@ -348,16 +358,21 @@ export default function EditMemberScreen() {
                   setShowDatePicker(false);
                   setShowDeathPicker(true);
                 }}
-                className="w-full flex-row items-center justify-between rounded-2xl border border-[#f0f2f0] bg-white px-5 py-4">
-                <Text className={dod ? 'text-base text-[#1a2b21]' : 'text-base text-[#c4ccc7]'}>
+                className="w-full flex-row items-center justify-between rounded-2xl border border-[#f0f2f0] bg-white px-5 py-4 dark:border-slate-700 dark:bg-slate-800">
+                <Text
+                  className={
+                    dod
+                      ? 'text-base text-[#1a2b21] dark:text-white'
+                      : 'text-base text-[#c4ccc7] dark:text-slate-400'
+                  }>
                   {dod ? dod : 'YYYY-MM-DD'}
                 </Text>
-                <Feather name="calendar" size={18} color="#6d7b73" />
+                <Feather name="calendar" size={18} color={isDarkMode ? '#cbd5e1' : '#6d7b73'} />
               </TouchableOpacity>
 
               {showDeathPicker &&
                 (Platform.OS === 'ios' ? (
-                  <View className="mt-4 overflow-hidden rounded-2xl border border-[#f0f2f0] bg-white p-4">
+                  <View className="mt-4 overflow-hidden rounded-2xl border border-[#f0f2f0] bg-white p-4 dark:border-slate-700 dark:bg-slate-800">
                     <View className="mb-2 flex-row justify-end">
                       <TouchableOpacity onPress={() => setShowDeathPicker(false)}>
                         <Text className="font-bold text-[#8cc63f]">Done</Text>
@@ -396,11 +411,15 @@ export default function EditMemberScreen() {
           </View>
 
           {/* Privacy Settings Section */}
-          <View className="mb-10 rounded-[32px] bg-white p-6" style={styles.cardShadow}>
+          <View
+            className="mb-10 rounded-[32px] bg-white p-6 dark:bg-slate-900"
+            style={styles.cardShadow}>
             <View className="flex-row items-center justify-between">
               <View className="flex-1">
-                <Text className="text-[14px] font-bold text-[#1a2b21]">Still Living</Text>
-                <Text className="mt-1 text-[12px] text-[#9aa7a0]">
+                <Text className="text-[14px] font-bold text-[#1a2b21] dark:text-white">
+                  Still Living
+                </Text>
+                <Text className="mt-1 text-[12px] text-[#9aa7a0] dark:text-slate-400">
                   Toggle off for deceased relatives
                 </Text>
               </View>

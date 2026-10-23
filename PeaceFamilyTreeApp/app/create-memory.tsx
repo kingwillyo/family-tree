@@ -21,12 +21,15 @@ import { createMemory, deleteMemory, fetchMemoryById, updateMemory } from '../li
 import { fetchCurrentUserProfile, Profile } from '../lib/treeService';
 import { OptimizedImage as Image } from '../components/OptimizedImage';
 import { showImageSourcePicker } from '../lib/imagePicker';
+import { useColorScheme } from 'nativewind';
 
 export default function CreateMemoryScreen() {
   const router = useRouter();
   const { memoryId, id } = useLocalSearchParams<{ memoryId?: string; id?: string }>();
   const editingMemoryId = id ?? memoryId;
   const { user } = useAuth();
+  const { colorScheme } = useColorScheme();
+  const isDarkMode = colorScheme === 'dark';
   const isEditing = Boolean(editingMemoryId);
   const [title, setTitle] = useState('');
   const [memory, setMemory] = useState('');
@@ -232,15 +235,17 @@ export default function CreateMemoryScreen() {
 
   if (isLoadingMemory) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-white">
+      <SafeAreaView className="flex-1 items-center justify-center bg-white dark:bg-slate-950">
         <ActivityIndicator size="large" color="#84cc16" />
-        <Text className="mt-3 text-sm font-medium text-gray-400">Loading memory...</Text>
+        <Text className="mt-3 text-sm font-medium text-gray-400 dark:text-slate-400">
+          Loading memory...
+        </Text>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'bottom']}>
+    <SafeAreaView className="flex-1 bg-white dark:bg-slate-950" edges={['top', 'bottom']}>
       {/* Location Modal */}
       <Modal
         visible={isLocationModalVisible}
@@ -250,20 +255,22 @@ export default function CreateMemoryScreen() {
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           className="flex-1 justify-end bg-black/40">
-          <View className="rounded-t-3xl bg-white p-6 pb-10 shadow-lg">
+          <View className="rounded-t-3xl bg-white p-6 pb-10 shadow-lg dark:bg-slate-900">
             <View className="mb-4 flex-row items-center justify-between">
-              <Text className="text-[18px] font-bold text-gray-900">Add Location</Text>
+              <Text className="text-[18px] font-bold text-gray-900 dark:text-white">
+                Add Location
+              </Text>
               <TouchableOpacity
                 onPress={() => setLocationModalVisible(false)}
-                className="rounded-full bg-gray-100 p-2">
-                <Feather name="x" size={20} color="#6b7280" />
+                className="rounded-full bg-gray-100 p-2 dark:bg-slate-800">
+                <Feather name="x" size={20} color={isDarkMode ? '#cbd5e1' : '#6b7280'} />
               </TouchableOpacity>
             </View>
 
             <TouchableOpacity
               onPress={handleCurrentLocation}
               disabled={isFetchingLocation}
-              className="mb-6 flex-row items-center rounded-xl border border-green-100/50 bg-green-50/70 p-4">
+              className="mb-6 flex-row items-center rounded-xl border border-green-100/50 bg-green-50/70 p-4 dark:border-emerald-900 dark:bg-emerald-950/60">
               <View className="mr-3 rounded-full bg-[#84cc16] p-2.5">
                 <Feather name="navigation" size={18} color="white" />
               </View>
@@ -272,14 +279,14 @@ export default function CreateMemoryScreen() {
               </Text>
             </TouchableOpacity>
 
-            <View className="flex-row items-center rounded-full border border-gray-200 bg-white px-4 py-3">
-              <Feather name="search" size={18} color="#9ca3af" />
+            <View className="flex-row items-center rounded-full border border-gray-200 bg-white px-4 py-3 dark:border-slate-700 dark:bg-slate-800">
+              <Feather name="search" size={18} color={isDarkMode ? '#94a3b8' : '#9ca3af'} />
               <TextInput
                 value={manualLocation}
                 onChangeText={setManualLocation}
                 placeholder="Search for a location..."
                 placeholderTextColor="#9ca3af"
-                className="ml-3 flex-1 text-[15px] font-medium text-gray-900"
+                className="ml-3 flex-1 text-[15px] font-medium text-gray-900 dark:text-white"
                 onSubmitEditing={handleManualLocationSubmit}
               />
               {manualLocation.length > 0 && (
@@ -316,24 +323,26 @@ export default function CreateMemoryScreen() {
                 width: Dimensions.get('window').width,
                 height: Dimensions.get('window').height * 0.7,
               }}
-              resizeMode="contain"
+              contentFit="contain"
             />
           </ScrollView>
         </View>
       </Modal>
 
       {/* Header */}
-      <View className="flex-row items-center justify-between border-b border-gray-100 px-4 pb-3 pt-2">
+      <View className="flex-row items-center justify-between border-b border-gray-100 px-4 pb-3 pt-2 dark:border-slate-800">
         <TouchableOpacity onPress={() => router.back()} className="py-2">
-          <Text className="text-[16px] font-medium text-gray-500">Cancel</Text>
+          <Text className="text-[16px] font-medium text-gray-500 dark:text-slate-400">Cancel</Text>
         </TouchableOpacity>
 
-        <Text className="text-[16px] font-bold text-gray-900">
+        <Text className="text-[16px] font-bold text-gray-900 dark:text-white">
           {isEditing ? 'Edit Memory' : 'New Memory'}
         </Text>
 
         <TouchableOpacity
-          className={`rounded-full px-4 py-1.5 ${isPostEnabled ? 'bg-[#84cc16]' : 'bg-green-100/50'}`}
+          className={`rounded-full px-4 py-1.5 ${
+            isPostEnabled ? 'bg-[#84cc16]' : 'bg-green-100/50 dark:bg-slate-800'
+          }`}
           disabled={!isPostEnabled}
           onPress={handlePost}>
           {isPosting ? (
@@ -359,24 +368,26 @@ export default function CreateMemoryScreen() {
             {profile?.avatar_url ? (
               <Image
                 source={{ uri: profile.avatar_url }}
-                className="mr-3 h-10 w-10 rounded-full bg-gray-200"
+                className="mr-3 h-10 w-10 rounded-full bg-gray-200 dark:bg-slate-800"
               />
             ) : (
-              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-[#f0f9ed]">
-                <Text className="text-[15px] font-bold text-[#65a30d]">
+              <View className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-[#f0f9ed] dark:bg-emerald-950">
+                <Text className="text-[15px] font-bold text-[#65a30d] dark:text-emerald-300">
                   {profile?.full_name?.charAt(0)?.toUpperCase() || '?'}
                 </Text>
               </View>
             )}
             <View className="flex-1 pt-1">
               {location && (
-                <View className="mb-2 flex-row items-center self-start rounded-full bg-[#f0f9ed] px-3 py-1">
-                  <Feather name="map-pin" size={12} color="#65a30d" />
-                  <Text className="ml-1.5 text-[12px] font-bold text-[#65a30d]">{location}</Text>
+                <View className="mb-2 flex-row items-center self-start rounded-full bg-[#f0f9ed] px-3 py-1 dark:bg-emerald-950">
+                  <Feather name="map-pin" size={12} color={isDarkMode ? '#6ee7b7' : '#65a30d'} />
+                  <Text className="ml-1.5 text-[12px] font-bold text-[#65a30d] dark:text-emerald-300">
+                    {location}
+                  </Text>
                   <TouchableOpacity
                     onPress={() => setLocation(null)}
                     className="ml-2 border-l border-green-200/50 pl-2">
-                    <Feather name="x" size={12} color="#65a30d" />
+                    <Feather name="x" size={12} color={isDarkMode ? '#6ee7b7' : '#65a30d'} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -385,7 +396,7 @@ export default function CreateMemoryScreen() {
                 onChangeText={setTitle}
                 placeholder="Title of post..."
                 placeholderTextColor="#9ca3af"
-                className="mb-2 text-[20px] font-bold text-gray-900"
+                className="mb-2 text-[20px] font-bold text-gray-900 dark:text-white"
               />
               {activeType === 'story' && (
                 <TextInput
@@ -395,14 +406,14 @@ export default function CreateMemoryScreen() {
                   placeholderTextColor="#9ca3af"
                   multiline
                   scrollEnabled={false}
-                  className="min-h-[60px] text-[16px] leading-[24px] text-gray-800"
+                  className="min-h-[60px] text-[16px] leading-[24px] text-gray-800 dark:text-slate-200"
                   style={{ textAlignVertical: 'top' }}
                 />
               )}
 
               {activeType === 'photo' && mediaUris.length > 0 && (
                 <View className="mt-3">
-                  <View className="mb-2 mt-1 h-[250px] w-full overflow-hidden rounded-xl bg-gray-100">
+                  <View className="mb-2 mt-1 h-[250px] w-full overflow-hidden rounded-xl bg-gray-100 dark:bg-slate-800">
                     <TouchableOpacity
                       activeOpacity={0.9}
                       onPress={() => setPreviewImage(mediaUris[0])}
@@ -410,7 +421,7 @@ export default function CreateMemoryScreen() {
                       <Image
                         source={{ uri: mediaUris[0] }}
                         className="h-full w-full"
-                        resizeMode="cover"
+                        contentFit="cover"
                       />
                     </TouchableOpacity>
                     <TouchableOpacity
@@ -425,12 +436,12 @@ export default function CreateMemoryScreen() {
                       {mediaUris.slice(1).map((uri, index) => (
                         <View
                           key={index + 1}
-                          className="h-[100px] w-[31.5%] overflow-hidden rounded-xl bg-gray-100">
+                          className="h-[100px] w-[31.5%] overflow-hidden rounded-xl bg-gray-100 dark:bg-slate-800">
                           <TouchableOpacity
                             activeOpacity={0.9}
                             onPress={() => setPreviewImage(uri)}
                             className="h-full w-full">
-                            <Image source={{ uri }} className="h-full w-full" resizeMode="cover" />
+                            <Image source={{ uri }} className="h-full w-full" contentFit="cover" />
                           </TouchableOpacity>
                           <TouchableOpacity
                             onPress={() => removeImage(index + 1)}
@@ -445,7 +456,7 @@ export default function CreateMemoryScreen() {
               )}
 
               {activeType === 'audio' && (
-                <View className="mt-3 flex-row items-center justify-between rounded-xl border border-gray-100 bg-[#f9fafb] p-4">
+                <View className="mt-3 flex-row items-center justify-between rounded-xl border border-gray-100 bg-[#f9fafb] p-4 dark:border-slate-700 dark:bg-slate-800">
                   <View className="flex-1 flex-row items-center">
                     <TouchableOpacity className="mr-3 items-center justify-center rounded-full bg-[#84cc16] p-2.5">
                       <Ionicons name="play" size={20} color="white" style={{ marginLeft: 2 }} />
@@ -464,15 +475,19 @@ export default function CreateMemoryScreen() {
                         ))}
                       </View>
                       <View className="mt-2 flex-row justify-between">
-                        <Text className="text-[12px] font-medium text-gray-500">0:00</Text>
-                        <Text className="text-[12px] font-medium text-gray-500">2:15</Text>
+                        <Text className="text-[12px] font-medium text-gray-500 dark:text-slate-400">
+                          0:00
+                        </Text>
+                        <Text className="text-[12px] font-medium text-gray-500 dark:text-slate-400">
+                          2:15
+                        </Text>
                       </View>
                     </View>
                   </View>
                   <TouchableOpacity
                     onPress={clearAudio}
-                    className="items-center justify-center rounded-full bg-gray-200 p-1.5">
-                    <Feather name="x" size={14} color="#6b7280" />
+                    className="items-center justify-center rounded-full bg-gray-200 p-1.5 dark:bg-slate-700">
+                    <Feather name="x" size={14} color={isDarkMode ? '#cbd5e1' : '#6b7280'} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -501,24 +516,42 @@ export default function CreateMemoryScreen() {
         </ScrollView>
 
         {/* Action Toolbar */}
-        <View className="flex-row items-center border-t border-gray-100/80 bg-white px-4 py-3 pb-6">
+        <View className="flex-row items-center border-t border-gray-100/80 bg-white px-4 py-3 pb-6 dark:border-slate-800 dark:bg-slate-900">
           <TouchableOpacity
             onPress={handlePhotoUpload}
-            className={`mr-5 items-center justify-center rounded-full p-2 ${activeType === 'photo' ? 'bg-[#84cc16]' : 'bg-green-50/50'}`}>
-            <Feather name="image" size={22} color={activeType === 'photo' ? 'white' : '#84cc16'} />
+            className={`mr-5 items-center justify-center rounded-full p-2 ${
+              activeType === 'photo' ? 'bg-[#84cc16]' : 'bg-green-50/50 dark:bg-slate-800'
+            }`}>
+            <Feather
+              name="image"
+              size={22}
+              color={activeType === 'photo' ? 'white' : isDarkMode ? '#a3e635' : '#84cc16'}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={handleAudioUpload}
-            className={`mr-5 items-center justify-center rounded-full p-2 ${activeType === 'audio' ? 'bg-[#84cc16]' : 'bg-green-50/50'}`}>
-            <Feather name="mic" size={22} color={activeType === 'audio' ? 'white' : '#84cc16'} />
+            className={`mr-5 items-center justify-center rounded-full p-2 ${
+              activeType === 'audio' ? 'bg-[#84cc16]' : 'bg-green-50/50 dark:bg-slate-800'
+            }`}>
+            <Feather
+              name="mic"
+              size={22}
+              color={activeType === 'audio' ? 'white' : isDarkMode ? '#a3e635' : '#84cc16'}
+            />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setLocationModalVisible(true)}
-            className={`mr-5 items-center justify-center rounded-full p-2 ${location ? 'bg-[#84cc16]' : 'bg-green-50/50'}`}>
-            <Feather name="map-pin" size={22} color={location ? 'white' : '#84cc16'} />
+            className={`mr-5 items-center justify-center rounded-full p-2 ${
+              location ? 'bg-[#84cc16]' : 'bg-green-50/50 dark:bg-slate-800'
+            }`}>
+            <Feather
+              name="map-pin"
+              size={22}
+              color={location ? 'white' : isDarkMode ? '#a3e635' : '#84cc16'}
+            />
           </TouchableOpacity>
-          <TouchableOpacity className="mr-5 items-center justify-center rounded-full bg-green-50/50 p-2">
-            <Feather name="user-plus" size={22} color="#84cc16" />
+          <TouchableOpacity className="mr-5 items-center justify-center rounded-full bg-green-50/50 p-2 dark:bg-slate-800">
+            <Feather name="user-plus" size={22} color={isDarkMode ? '#a3e635' : '#84cc16'} />
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

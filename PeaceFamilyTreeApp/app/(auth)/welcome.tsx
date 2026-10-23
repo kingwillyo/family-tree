@@ -3,15 +3,14 @@ import React, { useRef, useState } from 'react';
 import {
   Dimensions,
   FlatList,
+  Image,
   SafeAreaView,
-  StyleSheet,
   Text,
   TouchableOpacity,
   View,
   ViewToken,
 } from 'react-native';
 import { Button } from '../../components/Button';
-import { OptimizedImage as Image } from '../../components/OptimizedImage';
 
 const { width } = Dimensions.get('window');
 
@@ -66,21 +65,15 @@ export default function WelcomeScreen() {
     });
   };
 
-  const renderSlide = ({ item }: { item: typeof SLIDES[0] }) => (
+  const renderSlide = ({ item }: { item: (typeof SLIDES)[0] }) => (
     <View style={{ width }} className="items-center px-10">
       <View className="mb-8 mt-12 h-80 w-full items-center justify-center">
-        <Image
-          source={item.image}
-          className="h-full w-full"
-          resizeMode="contain"
-        />
+        <Image source={item.image} resizeMode="contain" style={{ width: '100%', height: '100%' }} />
       </View>
-      <Text className="mb-4 text-center text-3xl font-extrabold text-[#1a2b21] leading-tight">
+      <Text className="mb-4 text-center text-3xl font-extrabold leading-tight text-[#1a2b21]">
         {item.title}
       </Text>
-      <Text className="text-center text-lg text-[#3e4d44] leading-6">
-        {item.description}
-      </Text>
+      <Text className="text-center text-lg leading-6 text-[#3e4d44]">{item.description}</Text>
     </View>
   );
 
@@ -89,6 +82,7 @@ export default function WelcomeScreen() {
       <View className="flex-1">
         <FlatList
           ref={flatListRef}
+          style={{ flex: 1 }}
           data={SLIDES}
           renderItem={renderSlide}
           horizontal
@@ -114,18 +108,13 @@ export default function WelcomeScreen() {
         {/* Action Buttons */}
         <View className="px-6 pb-12">
           {activeIndex < SLIDES.length - 1 ? (
-            <Button
-              title="Next"
-              variant="brand"
-              onPress={handleNext}
-              className="mb-4"
-            />
+            <Button title="Next" variant="brand" onPress={handleNext} className="mb-4" />
           ) : (
             <>
               <Link href="/(auth)/register" asChild>
                 <Button title="Create Account" variant="brand" className="mb-4" />
               </Link>
-              
+
               <Link href="/(auth)/login" asChild>
                 <Button title="Log In" variant="secondary" />
               </Link>
@@ -145,7 +134,7 @@ export default function WelcomeScreen() {
           </View>
         </View>
       </View>
-      
+
       {/* Top Header - Skip Button */}
       {activeIndex < SLIDES.length - 1 && (
         <View className="absolute right-6 top-16">
